@@ -3,6 +3,8 @@
 一个**零依赖的单文件网页**：转动数十轮因果轮盘，抽出一个属于《咒术回战》世界观的"人生"，
 并把结果导出成 Markdown 档案，交给任意 AI 写成同人短篇。
 
+**在线直接玩**：<https://solar-cv.github.io/jujutsu-kaisen-life-wheel/jujutsu-life-wheel.html>
+
 **打开方式**：下载 `jujutsu-life-wheel.html`，双击即可在浏览器里运行。没有构建步骤、没有 npm、没有后端。
 
 > 本作为《咒术回战》二次创作的同人向玩具 · 版权归原作者芥见下下及集英社所有 · 生成结果仅供娱乐
