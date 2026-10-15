@@ -44,6 +44,9 @@ header{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
 .seal{width:46px;height:46px;flex:none;border-radius:6px;background:var(--vermillion);color:#FFF3E6;font-family:var(--font-display);font-size:26px;line-height:1;display:grid;place-items:center;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
 h1{font-family:var(--font-display);font-weight:600;font-size:clamp(22px,3.2vw,32px);letter-spacing:.06em;margin:0;line-height:1.15}
 .tagline{margin:2px 0 0;color:var(--ink-soft);font-size:12.5px;letter-spacing:.2em}
+.ver{display:inline-block;margin-left:8px;padding:1px 7px;border:1px solid var(--line);border-radius:999px;
+  font-size:10.5px;letter-spacing:.06em;color:var(--ink-faint);vertical-align:middle;white-space:nowrap;user-select:all}
+.ver.badge{background:var(--vermillion);border-color:var(--vermillion);color:#FFF4E8}
 .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .btn{font-family:var(--font-body);font-size:13px;letter-spacing:.04em;padding:8px 14px;border-radius:var(--r-sm);cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink);transition:transform .12s var(--ease-out-quart),border-color .2s,background .2s,color .2s}
 .btn:hover{border-color:var(--vermillion);color:var(--vermillion)}
@@ -192,7 +195,7 @@ hr.sep{border:0;border-top:1px dashed var(--line);margin:14px 0}
     <div class="seal">呪</div>
     <div>
       <h1>咒术回战 · 抽选人生</h1>
-      <p class="tagline">数十轮因果 · 前轮定后轮 · 一命到底</p>
+      <p class="tagline">数十轮因果 · 前轮定后轮 · 一命到底<span class="ver badge" title="生成器版本（更新：2026-10-15）"></span></p>
     </div>
   </div>
   <div class="controls">
@@ -341,6 +344,7 @@ hr.sep{border:0;border-top:1px dashed var(--line);margin:14px 0}
 </div>
 
 <p class="footnote">本作为《咒术回战》二次创作的同人向玩具 · 版权归原作者芥见下下及集英社所有 · 生成结果仅供娱乐</p>
+<p class="footnote"><span class="ver"></span> · 单文件网页 · 零依赖 · 离线可用</p>
 </div>
 
 <script>
@@ -350,6 +354,11 @@ hr.sep{border:0;border-top:1px dashed var(--line);margin:14px 0}
    · 前轮结果改写后轮：可加权、可归零（banned）、可整轮跳过
    · 轮次队列可在落地后动态插入：经历 / 缺席原因 / 技能 / 咒具 / 战斗回合 / 战后成长
    ===================================================================== */
+
+/* ---------- 版本号（页面徽章、页脚与 Markdown 档案都从这里取） ---------- */
+const VERSION = 'v6.0';
+const VERSION_DATE = '2026-10-15';
+const VERSION_NOTE = '多场战斗（百鬼夜行 / 少年院 / 涩谷事变 / 死灭回游 / 新宿决战）+ 战后成长 + 早死分支';
 
 const mod360 = a => ((a % 360) + 360) % 360;
 const $ = s => document.querySelector(s);
@@ -2740,7 +2749,7 @@ function buildMarkdown(d, sv){
     const evVal = c[evId];
     if(!c['ed'+n]) return;                                   // 这一场没打
     if(!evVal || String(evVal).slice(-4) === '_abs') return;  // 缺席
-    const g = null;
+    let g = null;
     for(const x of evGroups){ if(x.key===evId){ g = x; break; } }
     let s = '### '+def.name+'（'+def.title+'）\n\n';
     if(g) s += fmtBout(g) + '\n';
@@ -2762,6 +2771,7 @@ function buildMarkdown(d, sv){
 
   return '# 咒术回战 · 抽选人生档案\n\n' +
 '> 生成时间：'+new Date().toLocaleString('zh-CN')+'\n' +
+'> 生成器版本：'+VERSION+'（'+VERSION_DATE+' · '+VERSION_NOTE+'）\n' +
 '> 生成方式：因果转盘（前轮结果实时改写后轮几率，扇区面积即当下几率）\n\n' +
 '## 一、此身为何\n\n| 轮次 | 结果 | 说明 |\n|---|---|---|\n'+coreRows+'\n\n' +
 '## 二、六维性能（E–EX）\n\n| 维度 | 等级 | 注释 |\n|---|---|---|\n'+dimTable+'\n\n' +
@@ -2991,6 +3001,10 @@ try{
 }catch(e){}
 
 $('#sysPrompt').value = SYSTEM_PROMPT;
+document.querySelectorAll('.ver').forEach(el=>{
+  el.textContent = VERSION;
+  el.title = '版本 '+VERSION+'（'+VERSION_DATE+'）· '+VERSION_NOTE;
+});
 resetFlow();
 renderLedger(); renderStats(); renderBattle(); renderStage();
 </script>
