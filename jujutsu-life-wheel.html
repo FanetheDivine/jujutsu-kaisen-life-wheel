@@ -252,6 +252,9 @@ hr.sep{border:0;border-top:1px dashed var(--line);margin:14px 0}
         <button class="btn ghost sm" id="resolveBtn" hidden>跳过战斗演出 · 直接结算</button>
         <button class="btn ghost sm" id="restartBtn">重新开始</button>
       </div>
+      <p class="hintline">每一段经历（百鬼夜行 / 少年院 / 涩谷事变 / 死灭回游 / 新宿决战）只要你在场就会开战，敌人按你的立场与强度自动匹配。
+        <label class="toggle-row" style="display:inline-flex;margin-left:6px"><input type="checkbox" id="quickBoutChk"> <span style="font-size:12px">事件战只出结算</span></label>
+      </p>
       <p class="hintline">「重新开始」会清空这一生的全部结果，转盘立刻回到第一轮的初始状态。</p>
     </div>
 
@@ -1027,7 +1030,7 @@ const GEAR_DEFS = [
   {id:'gr_original',s:'自制咒具', label:'自制咒具（由你的术式灌注而成）', base:0.9, hint:'不属于任何名录的武器——名字将按你的术式与出身生成。'}
 ];
 function chosenSkills(c){
-  return Object.keys(c).filter(k=>/^skill\d*$/.test(k) || k==='skill_new').map(k=>c[k]);
+  return Object.keys(c).filter(k=>/^skill\d+$/.test(k) || /^skillg\d+$/.test(k) || /^skillnew\d*$/.test(k) || k==='skill_new').map(k=>c[k]);
 }
 function skillStageFor(i, title){
   const st = {
@@ -1392,6 +1395,187 @@ const EVENT_DEFS = [
   ]}
 ];
 
+/* =====================================================================
+   事件战：百鬼夜行 / 少年院 / 涩谷事变 / 死灭回游 / 新宿决战 均可开战
+   敌人按「你在该事件里的立场 + 决战阵营 + 你的强度」自动匹配，不再只有终局之战
+   ===================================================================== */
+const BOUT_EVENTS = ['ev0','ev2','ev3','ev4','ev5'];
+const BOUT_DIFF   = {0:5, 2:4, 3:7, 4:6, 5:9};   // 各事件的基准难度（简报模式用）
+const BOUT_KIT = {
+  crowd:[
+    {k:'flow',  s:'咒力奔流', label:'咒灵群 · 咒力奔流', base:1.6, pw:5},
+    {k:'swarm', s:'数量压制', label:'数量压制（四面八方）', base:1.3, pw:6},
+    {k:'devour',s:'吞噬',     label:'被它们按倒 · 啃食', base:1.1, pw:7},
+    {k:'domain',s:'小型领域', label:'小型领域 · 泥沼', base:0.45, pw:9}
+  ],
+  curse:[
+    {k:'jutsu', s:'术式攻击', label:'术式 · 无为转变 / 炎', base:1.5, pw:7},
+    {k:'domain',s:'领域展开', label:'展开领域', base:0.7, pw:11},
+    {k:'black', s:'黑闪',     label:'黑闪', base:0.5, pw:8},
+    {k:'tai',   s:'肉体碾压', label:'变形的肉体 · 碾压', base:1.0, pw:6}
+  ],
+  sorcerer:[
+    {k:'jutsu', s:'术式攻击', label:'术式攻击', base:1.5, pw:6},
+    {k:'gear',  s:'咒具',     label:'咒具 · 斩击', base:1.1, pw:5},
+    {k:'black', s:'黑闪',     label:'黑闪', base:0.6, pw:8},
+    {k:'barrier',s:'结界',    label:'以结界切断退路', base:0.8, pw:5},
+    {k:'domain',s:'领域',     label:'展开领域', base:0.5, pw:10}
+  ],
+  player:[
+    {k:'jutsu', s:'术式攻击', label:'术式攻击', base:1.6, pw:6},
+    {k:'trap',  s:'陷阱',     label:'预先布置的陷阱', base:1.0, pw:6},
+    {k:'rule',  s:'改写规则', label:'用点数改写规则', base:0.6, pw:8},
+    {k:'tai',   s:'体术',     label:'体术连击', base:1.2, pw:4}
+  ],
+  object:[
+    {k:'claw',  s:'爪击',     label:'咒物的爪击', base:1.6, pw:6},
+    {k:'fear',  s:'威压',     label:'威压 · 咒力喷涌', base:1.0, pw:7},
+    {k:'devour',s:'吞噬',     label:'试图吞下你', base:0.8, pw:8},
+    {k:'regen', s:'再生',     label:'断肢再生', base:0.8, pw:4}
+  ]
+  // 注：key 为 'sukuna' 时直接用 ENEMY_KIT.b10（它在下方定义，此处不能提前引用）
+};
+const boutKit = key => key === 'sukuna' ? ENEMY_KIT.b10 : (BOUT_KIT[key] || GENERIC_KIT);
+function boutFoe(evId, c){
+  if(evId === 'ev0') return (c.ev0 === 'ev0_d')
+    ? {key:'sorcerer', name:'赶来祓除的高专术师', note:'放出咒灵的人和你站在一边，所以那一夜你的敌人是来救人的那些人。', bonus:-1}
+    : {key:'crowd',    name:'百鬼 · 咒灵群',      note:'上千只咒灵涌上东京与京都的街头。你不必打赢它们，只要活到天亮。', bonus:0};
+  if(evId === 'ev2') return (c.ev2 === 'ev2_c')
+    ? {key:'sorcerer', name:'来回收咒物的高专术师', note:'你想要那根手指，于是挡在你面前的是来收回它的人。', bonus:-1}
+    : {key:'object',   name:'少年院里的特级咒物',   note:'那根手指化成的东西，正从走廊尽头爬过来。', bonus:0};
+  if(evId === 'ev3') return (c.ev3 === 'ev3_d' || c.ev3 === 'ev3_e')
+    ? {key:'sorcerer', name:'涩谷里的咒术师',     note:'那一夜你在另一侧，挡路的是穿制服的那些人。', bonus:0}
+    : (c.ev3 === 'ev3_c'
+      ? {key:'crowd',  name:'逃命路上撞见的咒灵', note:'你只是来看万圣节人潮的普通人，但它还是找到了你。', bonus:-2}
+      : {key:'curse',  name:'涩谷的特级咒灵',     note:'真人、漏瑚、花御——那一夜的特级是成群出现的。', bonus:2});
+  if(evId === 'ev4') return (c.ev4 === 'ev4_d')
+    ? {key:'sorcerer', name:'闯进结界的术师',     note:'你是摆棋的人，所以你的对手是来掀桌的人。', bonus:-1}
+    : {key:'player',   name:'结界内的玩家',       note:'杀戮即得分。对面那个人同样懂这条规则。', bonus:0};
+  return (c.battleSide === 'bs_sukuna' || c.ev5 === 'ev5_c')
+    ? {key:'sorcerer', name:'讨伐宿傩的众人',     note:'你站在那两张脸的一侧，于是挡在你面前的是剩下的所有人。', bonus:1}
+    : (c.ev5 === 'ev5_b'
+      ? {key:'crowd',  name:'溢出结界的余波',     note:'你没能进入战场，但空中落下来的东西照样会杀人。', bonus:-2}
+      : {key:'sukuna', name:'两面宿傩',           note:'那一天的天空属于他。你能做的只有撑住。', bonus:3});
+}
+/* 事件战的「分差」：演出过就用真实累计；简报模式则用战力对事件难度估算 */
+function boutDiffOf(c, evId){
+  const b = state.battle;
+  if(b.bout === evId) return b.diff;
+  const n = evId.slice(2);
+  const foe = boutFoe(evId, c);
+  return Math.round(power(c)/8) - (BOUT_DIFF[n] || 5) - (foe.bonus || 0);
+}
+function boutRoundsStage(evId){
+  const n = evId.slice(2), def = EVENT_DEFS.find(d=>d.id===evId);
+  const o1 = 'br'+n+'_1', o2 = 'br'+n+'_2', o3 = 'br'+n+'_3';
+  return {
+    id:'br'+n, name:'「'+def.name+'」· 交手回合数', kind:'battle', tag:'事件战',
+    desc:'你在「'+def.title+'」这一战里与对手交手几次。事件战不会拖太久——一两次碰撞往往就分出生死。',
+    options:[
+      {id:o1, s:'一击',   label:'一击 · 一次交手', base:1.5, hint:'一次碰撞，胜负立判。'},
+      {id:o2, s:'二回合', label:'二回合', base:1.4, hint:'你来我往两次。'},
+      {id:o3, s:'三回合', label:'三回合', base:0.9, hint:'打到第三回合，双方都开始见底。'}
+    ],
+    rules:[
+      {name:'你足够强 · 打得久一点', when:c=>power(c)>=65, apply:w=>{w[o2]+=0.5; w[o3]+=0.5;}},
+      {name:'咒力总量偏低 · 速战速决', when:c=>RI(c,'dim_ce')<=2, apply:w=>{w[o1]+=0.8; w[o3]-=0.4;}},
+      {name:'对手是宿傩本人 · 一击即分生死', when:c=>evId==='ev5'&&boutFoe('ev5',c).key==='sukuna', apply:w=>{w[o1]+=0.7; w[o3]-=0.35;}},
+      {name:'幼童 / 老年 · 打不了太久', when:c=>c.age==='ag1'||c.age==='ag5', apply:w=>{w[o1]+=0.6; w[o3]-=0.3;}}
+    ]
+  };
+}
+function boutDuelStage(evId){
+  const n = evId.slice(2), def = EVENT_DEFS.find(d=>d.id===evId);
+  return {
+    id:'ed'+n, name:'「'+def.name+'」· 战斗结算', kind:'bout', tag:'事件战',
+    desc:'这一场的结果。若你在此战中战死，后面的经历会全部变成缺席，你也不会再出现在最终决战里。',
+    options:[
+      {id:'ed1', s:'压胜', label:'压胜 · 毫发无伤', base:1.0, hint:'你几乎没让对方碰到。'},
+      {id:'ed2', s:'险胜', label:'险胜 · 带伤取胜', base:1.5, hint:'你赢了，代价是几道会留很久的伤。'},
+      {id:'ed3', s:'脱身', label:'苦战脱身 · 没能赢但活着走了', base:1.0, hint:'跑不丢人。丢人的是跑不掉。'},
+      {id:'ed4', s:'重伤', label:'重伤濒死 · 赢了半条命', base:0.7, hint:'你赢了，但有一半的身体留在了那里。'},
+      {id:'ed5', s:'战死', label:'战死 · 没能起身', base:0.2, hint:'你的咒力耗尽在最后一击之前。'}
+    ],
+    rules:[
+      {name:'这一战打得不算惨 · 不会死在这里', when:c=>boutDiffOf(c,evId)>-9, apply:w=>{w.ed5=0;}},
+      {name:'交手被彻底压制', when:c=>boutDiffOf(c,evId)<=-8, apply:w=>{w.ed4+=1.2; w.ed5+=2.8; w.ed1=0; w.ed2=0;}},
+      {name:'交手落入下风', when:c=>boutDiffOf(c,evId)<=-3&&boutDiffOf(c,evId)>-8, apply:w=>{w.ed3+=1.6; w.ed4+=0.8; w.ed5+=0.4;}},
+      {name:'势均力敌', when:c=>Math.abs(boutDiffOf(c,evId))<3, apply:w=>{w.ed2+=0.8; w.ed3+=1.2; w.ed4+=0.6;}},
+      {name:'交手小胜', when:c=>boutDiffOf(c,evId)>=3&&boutDiffOf(c,evId)<6, apply:w=>{w.ed1+=1.0; w.ed2+=1.6;}},
+      {name:'交手占优', when:c=>boutDiffOf(c,evId)>=6, apply:w=>{w.ed1+=2.6; w.ed2+=0.5;}},
+      {name:'战力太低 · 这一战可能就是终点', when:c=>power(c)<28, apply:w=>{w.ed5+=0.7; w.ed1-=0.4;}},
+      {name:'凡人之躯 · 禁不起一次失误', when:c=>c.talent==='t6', apply:w=>{w.ed5+=0.9; w.ed1-=0.5;}},
+      {name:'对手是宿傩本人 · 活着就是胜利', when:c=>evId==='ev5'&&boutFoe('ev5',c).key==='sukuna', apply:w=>{w.ed5+=0.8; w.ed3+=0.8; w.ed1-=0.6;}},
+      {name:'你只是被卷入的市民', when:c=>evId==='ev3'&&c.ev3==='ev3_c', apply:w=>{w.ed3+=1.2; w.ed5+=0.6; w.ed1-=0.4;}},
+      {name:'六眼 / SS 以上 · 事件战几乎不会有事', when:c=>c.gift==='gift_six'||c.grade==='g7'||c.grade==='g8', apply:w=>{w.ed1+=0.8; w.ed5-=0.5;}}
+    ]
+  };
+}
+/* 还有没有「新的技术」可学（把技能轮的主要门槛复算一遍，避免抽到「学会新技能」却没东西可学） */
+function learnableCount(c){
+  const owned = chosenSkills(c);
+  let n = 0;
+  (SKILL_DEFS||[]).forEach(s=>{
+    if(owned.indexOf(s.id) >= 0) return;
+    if(['t2','t4','t5'].indexOf(c.talent)<0 && ['sk_extreme','sk_spread','sk_jutsurev','sk_resonance'].indexOf(s.id)>=0) return;
+    if(c.talent==='t6' && ['sk_reverse','sk_revout','sk_jutsurev','sk_black','sk_summon','sk_extreme','sk_spread','sk_resonance','sk_shadow'].indexOf(s.id)>=0) return;
+    if(RI(c,'dim_ct')<4 && s.id==='sk_black') return;
+    if(c.talent!=='t5' && RI(c,'dim_ct')<5 && ['sk_reverse','sk_revout'].indexOf(s.id)>=0) return;
+    if(!(c.talent==='t4'||c.origin==='o4') && s.id==='sk_summon') return;
+    if(c.technique!=='tc_shadow' && s.id==='sk_shadow') return;
+    if(c.domain!=='d2' && s.id==='sk_spread') return;
+    if(RI(c,'dim_in')<3 && s.id==='sk_puppet') return;
+    if(c.vowGate==='vow_no' && ['sk_bind','sk_loan'].indexOf(s.id)>=0) return;
+    if(c.vowGate!=='vow_yes' && s.id==='sk_loan') return;
+    n++;
+  });
+  return n;
+}
+function boutGrowthStage(evId){
+  const n = evId.slice(2), def = EVENT_DEFS.find(d=>d.id===evId);
+  return {
+    id:'gr'+n, name:'「'+def.name+'」之后 · 是否有所成长', kind:'growth', tag:'战后',
+    desc:'活过「'+def.name+'」之后，你身上留下了什么。',
+    options:[
+      {id:'gr_skill',  s:'学会新技能', label:'在生死之间学会了新的技术', base:1.3, hint:'人只在濒死时长本事。'},
+      {id:'gr_evolve', s:'术式进化',   label:'术式本身进化了', base:0.8, hint:'同一套术式，又长出了一层。'},
+      {id:'gr_rank',   s:'等级提升',   label:'实力精进（等级提升一档）', base:0.9, hint:'你被重新评定了一次。'},
+      {id:'gr_nothing',s:'什么也没变', label:'什么也没变，只是活下来了', base:1.1, hint:'活下来本身就已经很多了。'},
+      {id:'gr_lose',   s:'失去了什么', label:'失去了某样东西', base:0.7, hint:'咒具、术式、或者某个人。'}
+    ],
+    rules:[
+      {name:'无咒力凡人难以进化术式', when:c=>c.talent==='t6', apply:w=>{w.gr_evolve=0; w.gr_rank-=0.4;}},
+      {name:'无术式者谈不上术式进化', when:c=>['t1','t3'].indexOf(c.talent)>=0, apply:w=>{w.gr_evolve=0;}},
+      {name:'智谋 S 以上更易把经验变成技术', when:c=>RI(c,'dim_in')>=5, apply:w=>{w.gr_skill+=0.8;}},
+      {name:'本场压胜 · 未必学到东西', when:c=>c['ed'+n]==='ed1', apply:w=>{w.gr_nothing+=1.0;}},
+      {name:'险胜 / 重伤 · 生死之间长本事', when:c=>['ed2','ed4'].indexOf(c['ed'+n])>=0, apply:w=>{w.gr_skill+=1.0; w.gr_rank+=0.4;}},
+      {name:'只是脱身 · 更可能失去什么', when:c=>c['ed'+n]==='ed3', apply:w=>{w.gr_lose+=1.0; w.gr_rank-=0.3;}},
+      {name:'年少者学得更快', when:c=>c.age==='ag1'||c.age==='ag2', apply:w=>{w.gr_skill+=0.5;}},
+      {name:'已经没有新的技术可学', when:c=>learnableCount(c)===0, apply:w=>{w.gr_skill=0;}}
+    ]
+  };
+}
+function boutSkillStage(evId){
+  const n = evId.slice(2), def = EVENT_DEFS.find(d=>d.id===evId);
+  const st = skillStageFor('g'+n);
+  st.name = '「'+def.name+'」之后习得的技术';
+  return st;
+}
+function boutLossStage(evId){
+  const n = evId.slice(2), def = EVENT_DEFS.find(d=>d.id===evId);
+  return Object.assign({}, LOSS, {id:'ls'+n, name:'「'+def.name+'」· 你失去了什么', desc:'活下来是要付账的。'});
+}
+/* 在某场事件战中战死：后面的经历全部缺席，最终决战也不会再有你 */
+function deadAt(c){
+  for(const id of BOUT_EVENTS){ if(c['ed'+id.slice(2)] === 'ed5') return id; }
+  return null;
+}
+function deadBefore(c, evId){
+  const d = deadAt(c);
+  if(!d) return false;
+  return BOUT_EVENTS.indexOf(d) < BOUT_EVENTS.indexOf(evId) || (evId === 'ev6' && !!d);
+}
+
 function priorDead(c){
   return Object.keys(c).some(k=>k.indexOf('abs_')===0 && String(c[k]).slice(-5)==='_dead');
 }
@@ -1414,6 +1598,11 @@ function makeEventStage(def){
     name:'你已经死在某个时点',
     when:c=>priorDead(c),
     apply:w=>{ Object.keys(w).forEach(k=>{ if(k !== def.id+'_abs') w[k]=0; }); w[def.id+'_abs']+=6; }
+  });
+  st.rules.push({
+    name:'你已在更早的战斗中战死',
+    when:c=>deadBefore(c, def.id),
+    apply:w=>{ Object.keys(w).forEach(k=>{ if(k !== def.id+'_abs') w[k]=0; }); w[def.id+'_abs']+=8; }
   });
   return st;
 }
@@ -1532,6 +1721,7 @@ const SUKUNA_TRUE_KIT = [
 const ROUND_NUM = {r1:1, r2:2, r3:3, r4:4, r5:5};
 const BATTLE_ROUNDS = {
   id:'battleRounds', name:'决战 · 交手回合数', kind:'battle', tag:'交战',
+  skipIf:c=>!!deadAt(c), skipText:'你没能活到最终决战 —— 此轮不存',
   desc:'你和对手交手多少次（1–5 回合）。每一次交手，双方都要各抽一次「这一手打什么」。评定为 SS / EX 者会额外自动多打一个回合（上限仍为五回合）。',
   options:[
     {id:'r1', s:'一击',   label:'一击定胜负', base:0.55, hint:'只交手一次。不是你倒下，就是他倒下。'},
@@ -1651,15 +1841,18 @@ function playerActionStage(idx, round, extra){
 function enemyActionStage(idx, round){
   const opp = oppOf(state.results);
   const phase2 = state.battle.phase === 2;
-  const kit = (phase2 && opp === 'b10') ? SUKUNA_TRUE_KIT : (ENEMY_KIT[opp] || GENERIC_KIT);
+  const foe = state.battle.foe || null;
+  const kit = foe ? boutKit(foe.key)
+                  : ((phase2 && opp === 'b10') ? SUKUNA_TRUE_KIT : (ENEMY_KIT[opp] || GENERIC_KIT));
   // 二番战：宿傩的种族加成减半、追加值减为 +1（他已经是一番战的手下败将，不该再叠满 buff）
-  const bonus = (phase2 ? Math.round((OPP_BONUS[opp]||0)*0.5) : (OPP_BONUS[opp]||0))
-              + Math.round(power(state.results)/45) + (phase2 ? 1 : 0);
+  const bonus = foe ? ((foe.bonus||0) + Math.round(power(state.results)/62))
+                    : ((phase2 ? Math.round((OPP_BONUS[opp]||0)*0.5) : (OPP_BONUS[opp]||0))
+                       + Math.round(power(state.results)/45) + (phase2 ? 1 : 0));
   const scale = 0.65 + power(state.results)/160;   // 对手的强度随你的实力伸缩
   return {
     id:'eact'+idx, kind:'atk', side:'e', round, tag:'战斗',
-    name:'第 '+round+' 回合 · '+(phase2 ? '原身形态的出手' : '对手的出手'),
-    desc:(phase2 ? '他撕开了受肉的躯壳，露出四只手与两张脸。' : '') + '对方这一手要打什么。',
+    name:'第 '+round+' 回合 · '+(foe ? foe.name+'的出手' : (phase2 ? '原身形态的出手' : '对手的出手')),
+    desc:(foe ? foe.note+' ' : (phase2 ? '他撕开了受肉的躯壳，露出四只手与两张脸。' : '')) + '对方这一手要打什么。',
     options: kit.map(o=>{
       const pw = Math.max(2, Math.round(o.pw*scale)) + bonus;
       return {id:'eact'+idx+'_'+o.k, s:o.s, label:o.label, base:o.base, pw, hint:'威力 '+pw+'。'};
@@ -1782,7 +1975,8 @@ const GROWTH = {
     {name:'无术式者谈不上术式进化', when:c=>['t1','t3'].indexOf(c.talent)>=0, apply:w=>{w.gr_evolve=0;}},
     {name:'智谋 S 以上更易把经验变成技术', when:c=>RI(c,'dim_in')>=5, apply:w=>{w.gr_skill+=0.8;}},
     {name:'败走者更可能失去什么', when:c=>c.duel==='w4', apply:w=>{w.gr_lose+=1.2; w.gr_rank-=0.5;}},
-    {name:'压胜者未必学到东西', when:c=>c.duel==='w1', apply:w=>{w.gr_nothing+=0.8;}}
+    {name:'压胜者未必学到东西', when:c=>c.duel==='w1', apply:w=>{w.gr_nothing+=0.8;}},
+    {name:'已经没有新的技术可学', when:c=>learnableCount(c)===0, apply:w=>{w.gr_skill=0;}}
   ]
 };
 const LOSS = {
@@ -1859,7 +2053,12 @@ const ENDING = {
     /* 战死是硬约束，放在最后执行，避免被其他规则顶掉 */
     {name:'决战战死', when:c=>c.duel==='w5', apply:w=>{w.x1+=9.0; w.x2=0; w.x5=0; w.x6=0; w.x7=0; w.x9=0; w.x8=0; w.x3=0;}},
     {name:'决战战死 · 咒灵之身', when:c=>c.duel==='w5'&&c.origin==='o4', apply:w=>{w.x4+=9.0; w.x1-=6;}},
-    {name:'败于原身形态的宿傩', when:c=>c.duel2==='w5', apply:w=>{w.x1+=9.0; w.x2=0; w.x5=0; w.x6=0; w.x7=0; w.x9=0; w.x8=0; w.x3=0;}}
+    {name:'败于原身形态的宿傩', when:c=>c.duel2==='w5', apply:w=>{w.x1+=9.0; w.x2=0; w.x5=0; w.x6=0; w.x7=0; w.x9=0; w.x8=0; w.x3=0;}},
+    /* 死在某一场事件战里：结局只能是「战死殉道」（咒灵则是消散），且不可能参与最终决战 */
+    {name:'你没能活到最终决战', when:c=>!!deadAt(c), apply:w=>{w.x1+=9.0; w.x2=0; w.x3=0; w.x4=0; w.x5=0; w.x6=0; w.x7=0; w.x8=0; w.x9=0;}},
+    {name:'你没能活到最终决战 · 咒灵之身', when:c=>!!deadAt(c)&&c.origin==='o4', apply:w=>{w.x4+=9.0; w.x1-=6;}},
+    {name:'在死灭回游里打出了名号', when:c=>['ed1','ed2'].indexOf(c['ed4'])>=0, apply:w=>{w.x5+=0.4; w.x2+=0.3;}},
+    {name:'在涩谷与死灭回游中都活了下来', when:c=>c['ed3']&&c['ed3']!=='ed5'&&c['ed4']&&c['ed4']!=='ed5', apply:w=>{w.x2+=0.4; w.x7+=0.3;}}
   ])
 };
 
@@ -1908,8 +2107,8 @@ function domLabel(c){
 const state = {
   i:0, results:{}, records:[], rot:0, spinning:false, auto:false, sound:false, done:false,
   gen:0, raf:0, ctrl:null,   // gen：每次「重新开始」+1，用于作废所有在途的旋转 / 落地 / 连抽 / API 流
-  battle:{p:0, e:0, diff:0, ce:3, domainUsed:false, rounds:0, log:[], extraCount:0, phase:1, prisonUsed:false},
-  jutsuName:'', domainName:''
+  battle:{p:0, e:0, diff:0, ce:3, domainUsed:false, rounds:0, log:[], extraCount:0, phase:1, prisonUsed:false, bout:'', foe:null},
+  jutsuName:'', domainName:'', quickBout:false
 };
 let STAGES = [];
 function resetFlow(){ STAGES = BASE_FLOW.map(s=>s); }
@@ -1970,6 +2169,32 @@ function expandAfter(idx, stageId, pick){
     return;
   }
   if(stageId.indexOf('ev')===0 && String(pick).slice(-4)==='_abs') ins.push(absenceStage(stageId));
+  /* 事件战：只要你在场（没缺席），这一战就开打 */
+  if(BOUT_EVENTS.indexOf(stageId)>=0 && String(pick).slice(-4)!=='_abs'){
+    ins.push(state.quickBout ? boutDuelStage(stageId) : boutRoundsStage(stageId));
+  }
+  if(/^br\d$/.test(stageId)){
+    const n = stageId.slice(2), evId = 'ev'+n;
+    const r = Number(String(pick).slice(-1)) || 1;
+    const b = state.battle;
+    b.bout = evId; b.foe = boutFoe(evId, state.results);
+    b.p = 0; b.e = 0; b.diff = 0; b.ce = 3; b.domainUsed = false; b.extraCount = 0;
+    b.rounds = r;
+    for(let k=1;k<=r;k++){
+      ins.push(playerActionStage('v'+n+'p'+k, k, false));
+      ins.push(enemyActionStage('v'+n+'e'+k, k));
+    }
+    ins.push(boutDuelStage(evId));
+  }
+  if(/^ed\d$/.test(stageId)){
+    const n = stageId.slice(2);
+    if(pick !== 'ed5') ins.push(boutGrowthStage('ev'+n));   // 死了就没有「之后」了
+  }
+  if(/^gr\d$/.test(stageId)){
+    const n = stageId.slice(2);
+    if(pick === 'gr_skill') ins.push(boutSkillStage('ev'+n));
+    if(pick === 'gr_lose')  ins.push(boutLossStage('ev'+n));
+  }
   if(stageId === 'skillCount'){
     const n = Number(String(pick).replace('kc',''));
     for(let k=1;k<=n;k++) ins.push(skillStageFor(k));
@@ -1992,9 +2217,11 @@ function expandAfter(idx, stageId, pick){
     const second = stageId === 'battleRounds2';
     let n = ROUND_NUM[pick] || 3;
     if((state.results.grade === 'g7' || state.results.grade === 'g8') && n < 5) n += 1;   // SS / EX 自动 +1，上限 5
+    if(!second){ state.battle.bout = 'final'; state.battle.foe = null; }
     if(second){
       // 二番战：重新计数，但一番战打出来的优势会带进来一部分（最多 ±5），咒力只剩一半
       state.battle.phase = 2;
+      state.battle.bout = 'final2'; state.battle.foe = null;
       const carry = Math.max(-2, Math.min(5, Math.round(state.battle.diff / 3)));
       state.battle.p = carry > 0 ? carry : 0;
       state.battle.e = carry < 0 ? -carry : 0;
@@ -2042,7 +2269,7 @@ function applyAction(stageId, pick){
     b.e += pw;
   }
   b.diff = b.p - b.e;
-  b.log.push({round:st.round, side:st.side, extra:!!st.extra, phase:b.phase||1, label:opt?opt.label:pick, pw});
+  b.log.push({round:st.round, side:st.side, extra:!!st.extra, phase:b.phase||1, bout:b.bout||'', label:opt?opt.label:pick, pw});
 }
 
 /* =====================================================================
@@ -2106,7 +2333,7 @@ function renderStage(){
     if(state.results.grade === 'g7' || state.results.grade === 'g8') desc += '【本局生效：'+labelOf(state.results.grade)+' → 抽中后追加 1 回合，最多五回合】';
   }
   if(st.id === 'sukunaTrue') desc = '一番战的结果：'+labelOf(state.results.duel)+'。'+st.desc;
-  if(st.kind === 'atk' && st.side === 'e') desc = (state.battle.phase===2 ? '他撕开了受肉的躯壳，露出四只手与两张脸。' : '')+(OPPONENT[opp]||'对手')+'这一手要打什么。';
+  if(st.kind === 'atk' && st.side === 'e') desc = (state.battle.foe ? state.battle.foe.note+' ' : (state.battle.phase===2 ? '他撕开了受肉的躯壳，露出四只手与两张脸。' : ''))+(state.battle.foe ? state.battle.foe.name : (OPPONENT[opp]||'对手'))+'这一手要打什么。';
   $('#stageDesc').textContent = desc;
 
   const ul = $('#opts'); ul.innerHTML='';
@@ -2133,7 +2360,8 @@ function renderStage(){
   renderSteps();
   $('#spinBtn').disabled = false;
   $('#spinBtn').textContent = st.kind==='ending' ? '转 动 · 定 终 局' : '转 动';
-  $('#resolveBtn').hidden = !(st.kind==='atk' || st.id==='battleRounds' || st.id==='battleRounds2' || st.id==='duel' || st.id==='duel2');
+  $('#resolveBtn').hidden = !(st.kind==='atk' || /^br\d$/.test(st.id) || /^ed\d$/.test(st.id)
+    || st.id==='battleRounds' || st.id==='battleRounds2' || st.id==='duel' || st.id==='duel2');
 }
 
 function renderLedger(){
@@ -2165,12 +2393,16 @@ function renderBattle(){
   const b = state.battle;
   if(!b.rounds){ $('#battleBox').hidden = true; return; }
   $('#battleBox').hidden = false;
-  const opp = OPPONENT[oppOf(state.results)] || '对手';
+  const oppLabel = b.foe ? b.foe.name : (OPPONENT[oppOf(state.results)] || '对手');
   const ph = b.phase || 1;
-  $('#battleOpp').textContent = opp + (ph===2 ? '（原身）' : '');
-  $('#battleEnemyName').textContent = (opp.length > 5 ? opp.slice(0,5) : opp) + (ph===2 ? '·原身' : '');
-  const done = b.log.filter(l=>l.side==='p' && !l.extra && (l.phase||1)===ph).length;
-  $('#battleRound').textContent = (ph===2?'二番战 ':'') + '第 '+Math.min(done, b.rounds)+' / '+b.rounds+' 回合';
+  $('#battleOpp').textContent = oppLabel + (ph===2 ? '（原身）' : '');
+  $('#battleEnemyName').textContent = (oppLabel.length > 5 ? oppLabel.slice(0,5) : oppLabel) + (ph===2 ? '·原身' : '');
+  const isEvent = !!b.foe;
+  const done = isEvent
+    ? b.log.filter(l=>l.side==='p' && !l.extra && l.bout===b.bout).length
+    : b.log.filter(l=>l.side==='p' && !l.extra && (l.phase||1)===ph).length;
+  const head = isEvent ? '事件战 ' : (ph===2 ? '二番战 ' : '');
+  $('#battleRound').textContent = head + '第 '+Math.min(done, b.rounds)+' / '+b.rounds+' 回合';
   const max = Math.max(b.p, b.e, 1);
   $('#bfP').style.width = (b.p/max*100)+'%';
   $('#bfE').style.width = (b.e/max*100)+'%';
@@ -2285,6 +2517,7 @@ function beep(freq, dur, vol){
    ===================================================================== */
 function pickWeighted(w){
   const ids = Object.keys(w).filter(k=>w[k]>0);
+  if(!ids.length) return null;   // 本轮所有选项都被前面的因果排除了
   const total = ids.reduce((a,k)=>a+w[k],0);
   let r = Math.random()*total;
   for(const k of ids){ r -= w[k]; if(r<=0) return k; }
@@ -2347,6 +2580,21 @@ function forceLand(idx){
 function land(idx, pick){
   const gen = state.gen;
   const st = STAGES[idx];
+  if(pick == null){                    // 本轮已无任何一个可能的选项：记「此轮不存」并前进
+    renderWheel(idx, null);
+    state.records.push({stageId:st.id, value:null, skipped:true});
+    renderLedger(); renderStats(); renderBattle(); renderSteps();
+    const nx = nextActiveIndex(idx+1, true);
+    if(nx === -1){ setTimeout(()=>{ if(state.gen !== gen) return; state.spinning = false; finish(); }, 600); return; }
+    state.i = nx;
+    setTimeout(()=>{
+      if(state.gen !== gen) return;
+      state.spinning = false;
+      $('#skipBtn').disabled = false; $('#autoBtn').disabled = false;
+      renderStage();
+    }, 260);
+    return;
+  }
   renderWheel(idx, pick);
   document.querySelectorAll('.opt').forEach(el=>el.classList.toggle('win', el.dataset.id===pick));
   expandAfter(idx, st.id, pick);
@@ -2380,7 +2628,12 @@ function skipStage(){
 function resolveBattle(){
   if(state.spinning || state.done) return;
   let guard = 0;
-  while(state.i < STAGES.length && STAGES[state.i].kind === 'atk' && guard++ < 40) forceLand(state.i);
+  // 一趟走完整场战斗：回合数轮 + 逐回合出手 + 结算轮（事件战与终局战都适用）
+  while(state.i < STAGES.length && guard++ < 60){
+    const st = STAGES[state.i];
+    if(st.kind === 'atk' || /^br\d$/.test(st.id) || /^ed\d$/.test(st.id)){ forceLand(state.i); continue; }
+    break;
+  }
   const id = state.i < STAGES.length ? STAGES[state.i].id : '';
   if(id === 'duel' || id === 'duel2') doSpin(900);
 }
@@ -2448,26 +2701,59 @@ function buildMarkdown(d, sv){
 
   const b = state.battle;
   const oppName = OPPONENT[oppId] || '对手';
-  let battleLog = '-（无战斗记录）';
-  if(b.log.length){
-    const phs = [];
-    b.log.forEach(l=>{ const p = l.phase||1; if(phs.indexOf(p)<0) phs.push(p); });
-    phs.sort();
-    const sumOf = (ph, side)=> b.log.filter(l=>(l.phase||1)===ph && l.side===side).reduce((a,l)=>a+l.pw, 0);
-    battleLog = phs.map(ph=>{
-      const ls = b.log.filter(l=>(l.phase||1)===ph);
-      const byRound = {};
-      ls.forEach(l=>{ byRound[l.round] = byRound[l.round]||[]; byRound[l.round].push(l); });
-      const head = ph===2 ? '**二番战 · '+oppName+'（原身形态）**\n' : '**一番战 · '+oppName+'**\n';
-      const body = Object.keys(byRound).sort((x,y)=>x-y).map(r=>{
-        const ps = byRound[r].filter(l=>l.side==='p').map(l=>l.label+(l.extra?'（追击）':'')+' +'+l.pw).join(' ／ ');
-        const es = byRound[r].filter(l=>l.side==='e').map(l=>l.label+' +'+l.pw).join(' ／ ');
-        return '- 第 '+r+' 回合：你【'+ps+'】 vs '+oppName+'【'+es+'】';
-      }).join('\n');
-      const sp = sumOf(ph,'p'), se = sumOf(ph,'e'), df = sp - se;
-      return head + body + '\n- 本场累计：你 '+sp+' ／ '+oppName+' '+se+'（差 '+(df>0?'+':'')+df+'）';
-    }).join('\n\n');
-  }
+  const evNameOf = id => { const d = EVENT_DEFS.find(x=>x.id===id); return d ? d.name : id; };
+  /* ---- 战斗记录按「场次」分组：各场事件战 + 终局一番战 + 终局二番战 ---- */
+  const boutGroups = [];
+  b.log.forEach(l=>{
+    const isEv = l.bout && BOUT_EVENTS.indexOf(l.bout) >= 0;
+    const key = isEv ? l.bout : ('final'+((l.phase||1)===2 ? '2' : ''));
+    let g = null;
+    for(const x of boutGroups){ if(x.key===key){ g=x; break; } }
+    if(!g){ g = {key, isEv, logs:[]}; boutGroups.push(g); }
+    g.logs.push(l);
+  });
+  const fmtBout = g => {
+    const byRound = {};
+    g.logs.forEach(l=>{ byRound[l.round] = byRound[l.round]||[]; byRound[l.round].push(l); });
+    const foeName = g.isEv ? boutFoe(g.key, c).name
+                           : ((g.key==='final2') ? oppName+'（原身形态）' : oppName);
+    const head = g.isEv ? '**'+evNameOf(g.key)+'** · 对手：'+foeName+'\n'
+                        : '**'+(g.key==='final2' ? '二番战' : '一番战')+'** · 对手：'+foeName+'\n';
+    const body = Object.keys(byRound).sort((x,y)=>x-y).map(r=>{
+      const ps = byRound[r].filter(l=>l.side==='p').map(l=>l.label+(l.extra?'（追击）':'')+' +'+l.pw).join(' ／ ');
+      const es = byRound[r].filter(l=>l.side==='e').map(l=>l.label+' +'+l.pw).join(' ／ ');
+      return '- 第 '+r+' 回合：你【'+ps+'】 vs '+foeName+'【'+es+'】';
+    }).join('\n');
+    const sp = g.logs.filter(l=>l.side==='p').reduce((a,l)=>a+l.pw, 0);
+    const se = g.logs.filter(l=>l.side==='e').reduce((a,l)=>a+l.pw, 0);
+    const df = sp - se;
+    return head + body + '\n- 本场累计：你 '+sp+' ／ '+foeName+' '+se+'（差 '+(df>0?'+':'')+df+'）';
+  };
+  const evGroups = boutGroups.filter(g=>g.isEv)
+    .sort((a,z)=>BOUT_EVENTS.indexOf(a.key)-BOUT_EVENTS.indexOf(z.key));
+  const finGroups = boutGroups.filter(g=>!g.isEv).sort((a,z)=>a.key<z.key?-1:1);
+  const battleLog = finGroups.length ? finGroups.map(fmtBout).join('\n\n') : '-（无终局战斗记录）';
+  /* 各场事件战：逐回合 + 结果 + 战后成长 + 失去 */
+  let boutRows = '';
+  BOUT_EVENTS.forEach(evId=>{
+    const n = evId.slice(2), def = EVENT_DEFS.find(x=>x.id===evId);
+    const evVal = c[evId];
+    if(!c['ed'+n]) return;                                   // 这一场没打
+    if(!evVal || String(evVal).slice(-4) === '_abs') return;  // 缺席
+    const g = null;
+    for(const x of evGroups){ if(x.key===evId){ g = x; break; } }
+    let s = '### '+def.name+'（'+def.title+'）\n\n';
+    if(g) s += fmtBout(g) + '\n';
+    else  s += '- 对手：**'+boutFoe(evId, c).name+'**（简报模式：未逐回合演出）\n';
+    s += '- 结果：**'+(c['ed'+n] ? labelOf(c['ed'+n]) : '——')+'**\n';
+    if(c['gr'+n]){
+      s += '- 战后：**'+labelOf(c['gr'+n])+'**';
+      if(c['skillg'+n]) s += '（习得：'+labelOf(c['skillg'+n])+'）';
+      if(c['ls'+n])     s += '　失去：**'+labelOf(c['ls'+n])+'**';
+      s += '\n';
+    }
+    boutRows += s + '\n';
+  });
   const opp = OPPONENT[oppId] || '你的命运本身';
   const bondLine = c.bond==='b13'
     ? '关键人物：**无。你孤身一人**，请写出这份孤独如何把人推向既定结局'
@@ -2482,16 +2768,19 @@ function buildMarkdown(d, sv){
 '- 综合战力：**'+power(c)+' / 100（'+rankOfScore(power(c))+'）**\n\n' +
 '## 三、技能 · 咒具 · 束缚\n\n'+(skillRows||'-（一件也不会）')+'\n\n'+(gearRows?'咒具：\n'+gearRows+'\n':'')+'\n'+(vowRows?'束缚：\n'+vowRows+'\n':'')+'\n' +
 '## 四、逐段经历\n\n'+(evRows||'-（入场于终战之后，此后再无大事）')+'\n\n'+(absRows?'缺席原因：\n'+absRows+'\n':'')+'\n' +
-'## 五、决战逐回合记录\n\n- 对手：**'+oppName+'**\n- 交手回合数：**'+labelOf(c.battleRounds)+'**'+(c.grade==='g7'||c.grade==='g8'?'（SS / EX 自动追加一回合）':'')+(c.battleRounds2?'　二番战：**'+labelOf(c.battleRounds2)+'**':'')+'\n'+battleLog+'\n\n' +
-(c.sukunaTrue ? '- 宿傩是否解放原身：**'+labelOf(c.sukunaTrue)+'**\n' : '') +
-'- 决战结果：**'+labelOf(c.duel)+'** —— '+(BY[c.duel]&&BY[c.duel].hint||'')+'\n\n' +
-'## 六、战后\n\n- '+(c.growth?'**'+labelOf(c.growth)+'**':'—')+'\n'+(c.loss?'- 失去的东西：**'+labelOf(c.loss)+'**\n':'')+'\n' +
-'## 七、结局\n\n- **'+labelOf(c.ending)+'** —— '+(BY[c.ending]&&BY[c.ending].hint||'')+'\n- 生还倾向：'+sv.toFixed(0)+'%\n\n' +
-(legacyRow?('## 八、身后名\n\n'+legacyRow+'\n\n'):'') +
-'## 九、术式与领域（具体名称）\n\n- 生得术式：**'+ (c.technique ? labelOf(c.technique) : '无术式') +'**'+(c.techNature?'（性质：'+labelOf(c.techNature)+'）':'')+'\n' +
+(boutRows?('## 五、各场战斗（逐场记录）\n\n'+boutRows+'\n'):'') +
+'## 六、决战逐回合记录\n\n'+(deadAt(c)
+  ? '- **未参与最终决战**：你在「'+evNameOf(deadAt(c))+'」这一战中战死，没能活到那一天。\n'
+  : ('- 对手：**'+oppName+'**\n- 交手回合数：**'+labelOf(c.battleRounds)+'**'+(c.grade==='g7'||c.grade==='g8'?'（SS / EX 自动追加一回合）':'')+(c.battleRounds2?'　二番战：**'+labelOf(c.battleRounds2)+'**':'')+'\n'+battleLog+'\n\n' +
+     (c.sukunaTrue ? '- 宿傩是否解放原身：**'+labelOf(c.sukunaTrue)+'**\n' : '') +
+     '- 决战结果：**'+labelOf(c.duel)+'** —— '+(BY[c.duel]&&BY[c.duel].hint||'')+'\n')) + '\n' +
+'## 七、战后\n\n- '+(c.growth?'**'+labelOf(c.growth)+'**':'—')+'\n'+(c.loss?'- 失去的东西：**'+labelOf(c.loss)+'**\n':'')+'\n' +
+'## 八、结局\n\n- **'+labelOf(c.ending)+'** —— '+(BY[c.ending]&&BY[c.ending].hint||'')+'\n- 生还倾向：'+sv.toFixed(0)+'%\n\n' +
+(legacyRow?('## 九、身后名\n\n'+legacyRow+'\n\n'):'') +
+'## 十、术式与领域（具体名称）\n\n- 生得术式：**'+ (c.technique ? labelOf(c.technique) : '无术式') +'**'+(c.techNature?'（性质：'+labelOf(c.techNature)+'）':'')+'\n' +
 '- 生得领域：**'+(c.domain==='d0' ? '未展开' : '「'+domLabel(c)+'」')+'**'+(c.domainForm?'（形态：'+labelOf(c.domainForm)+'）':'')+(c.domainEffect?'（效果：'+labelOf(c.domainEffect)+'）':'')+'\n' +
 '- 称号：**'+d.title+'**\n\n' +
-'## 十、世界观锚点（写作时请严格遵守）\n\n' +
+'## 十一、世界观锚点（写作时请严格遵守）\n\n' +
 '- 2006：怀玉·玉折（星浆体护送事件）／0 卷（乙骨忧太与祈本里香，百鬼夜行前夜）\n' +
 '- 2007.12.24：百鬼夜行，羂索在东京与京都放出上千只咒灵\n' +
 '- 2018 年春：虎杖悠仁吞下宿傩手指，进入东京咒术高专\n' +
@@ -2503,9 +2792,10 @@ function buildMarkdown(d, sv){
 '- 天与咒缚＝以术式换取肉体；反转术式＝负负得正；黑闪＝0.000001 秒误差的咒力碰撞\n' +
 '- 简易领域＝0.5 秒展开、不附必中但可抵消必中；极之番＝术式的最大输出\n' +
 '- 天元＝不死术式与日本结界的核心；受肉体＝千年咒术师的灵魂借尸苏醒\n\n' +
-'## 十一、请为我写故事\n\n请以以上档案为主角设定，创作一篇《咒术回战》同人短篇：\n\n' +
+'## 十二、请为我写故事\n\n请以以上档案为主角设定，创作一篇《咒术回战》同人短篇：\n\n' +
 '- 视点：第二人称「你」，从「'+labelOf(c.era)+'」入场，入场年龄 '+labelOf(c.age)+'，性格'+labelOf(c.personality)+'，运气 '+labelOf(c.luck)+'\n' +
 '- 必须按「逐段经历」的顺序逐段推进，每段独立成节\n' +
+(boutRows?'- 「各场战斗」里的每一场都要单独成节，按其中的逐回合记录写出双方出招（招式名请照抄），并写出该场之后的成长或失去\n':'') +
 '- 决战一节必须严格按「决战逐回合记录」逐回合写出双方出招（招式名请照抄），落在：**'+labelOf(c.duel)+'**（对手：'+opp+'）'+(c.sukunaTrue==='su_yes'?'；宿傩会在一番战后解放「原身形态」（四臂、双面），二番战必须单独成节':'')+'\n' +
 '- 最终结局必须是：**'+labelOf(c.ending)+'**\n' +
 '- '+bondLine+'\n' +
@@ -2644,6 +2934,7 @@ $('#hubGroup').onkeydown = e => { if(e.key==='Enter'||e.key===' '){ e.preventDef
 $('#skipBtn').onclick = ()=>{ state.auto=false; skipStage(); };
 $('#autoBtn').onclick = ()=>{ state.auto = true; doSpin(520); };
 $('#resolveBtn').onclick = resolveBattle;
+$('#quickBoutChk').onchange = e => { state.quickBout = e.target.checked; };
 
 /* =====================================================================
    重新开始：一键把转盘恢复到初始状态
