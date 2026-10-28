@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="refresh" content="0; url=./" />
+    <title>正在前往抽选人生转盘…</title>
+  </head>
+  <body>
+    <p>页面已迁移为可安装的 PWA，正在前往新版首页…</p>
+    <p><a href="./">如果没有自动跳转，请点击这里。</a></p>
+    <script>
+      const target = new URL('./', window.location.href)
+      target.search = window.location.search
+      target.hash = window.location.hash
+      window.location.replace(target.href)
+    </script>
+  </body>
+</html>
