@@ -46,28 +46,39 @@ description: 当用户希望对仓库内容做变更，包括需求、缺陷、�
 pnpm check   # typecheck + lint + test + build，必须全部通过
 ```
 
-通过才能 push 分支并创建 PR：
+通过才能 push 功能分支并创建 PR：
 
 ```sh
-gh pr create --fill   # 创建 PR 并回传链接
+git push -u origin <分支名>
+gh pr create --repo FanetheDivine/jujutsu-kaisen-life-wheel --base main --head <分支名> --fill
 ```
 
-确保pr的所有检查通过；如果与main冲突，将其merge到新分支并解决冲突；将输出链接让用户验收
+- 本项目的 PR 只创建到 **origin** 仓库 `FanetheDivine/jujutsu-kaisen-life-wheel`，不要向 **upstream** 仓库 `Solar-CV/jujutsu-kaisen-life-wheel` 创建 PR，除非用户明确要求变更目标。
+- 同时存在 fork 与 upstream 时，`gh` 可能自动选错仓库。`pr create` / `checks` / `view` / `merge` / `close` 都必须显式使用 `--repo FanetheDivine/jujutsu-kaisen-life-wheel`，不要依赖默认仓库解析。
+- 确保 PR 的所有检查通过；如果没有远端检查，确认 PR 可合并且如实说明，不虚构检查记录。如果与 main 冲突，将 main merge 到新分支并解决冲突；将输出链接让用户验收。
+- 遇到 `MergePullRequest` 等权限错误，先核对目标是否为 origin；不要擅自改投 upstream 或绕过权限，无法继续时告知用户。
 
-- 用户验收通过后，以**压缩（squash）**方式将 PR 合并到主分支，并在主工作区拉取最新代码：
+用户验收通过后，以**压缩（squash）**方式将 PR 合并到 origin 主分支，并在主工作区拉取最新代码：
 
 ```sh
-gh pr merge <分支名> --squash  # 压缩合并
+gh pr merge <PR编号> --repo FanetheDivine/jujutsu-kaisen-life-wheel --squash
+git pull --ff-only origin main   # 在主工作区执行
 ```
 
 - 若用户验收不通过，按情况回到 `需求分析`或`checklist`
-
-- 如果用户放弃此功能，关闭 PR：
+- 如果用户放弃此功能，关闭 origin PR：
 
 ```sh
-gh pr close <分支名>  # 关闭 PR
+gh pr close <PR编号> --repo FanetheDivine/jujutsu-kaisen-life-wheel
 ```
 
 ## 6. 清理
 
-无论第 5 步是合并 PR 还是放弃功能，都需要执行清理，完全删除 worktree、远程分支、本地分支
+无论第 5 步是合并 PR 还是放弃功能，都需要执行清理。确认 worktree 路径无误后，完全删除 worktree、origin 远程分支和本地分支：
+
+```sh
+git worktree remove <worktree路径>   # 在主工作区执行
+git push origin --delete <分支名>
+git branch -D <分支名>               # squash 合并后本地分支通常无法被 -d 识别
+git worktree prune
+```

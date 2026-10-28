@@ -60,5 +60,8 @@ pnpm check
 
 - 所有模块完成后运行 `pnpm check`，并审查最终差异。
 - PWA 或部署相关变更还需验证生产构建中的 Manifest、Service Worker、普通 / maskable 图标、旧地址跳转与离线能力。
-- 推送功能分支并创建 PR，确认 PR 检查通过后把链接交给用户验收。
-- 用户验收通过后才 squash 合并；若验收不通过，回到需求或 checklist，而不是直接合并。
+- 功能分支只推送到 `origin`。PR 只创建到 origin 仓库 `FanetheDivine/jujutsu-kaisen-life-wheel`，不要向 `upstream` 仓库 `Solar-CV/jujutsu-kaisen-life-wheel` 创建 PR，除非用户明确要求变更目标。
+- `gh` 在同时存在 fork 与 upstream 时可能自动选错仓库。`pr create` / `checks` / `view` / `merge` / `close` 都必须显式添加 `--repo FanetheDivine/jujutsu-kaisen-life-wheel`，不要依赖默认仓库解析。
+- 确认 PR 检查通过后把链接交给用户验收；若没有远端检查，应确认 PR 可合并且如实说明，不得虚构检查记录。
+- 用户验收通过后才 squash 合并；若验收不通过，回到需求或 checklist，而不是直接合并。遇到 `MergePullRequest` 权限错误时先核对目标是否为 origin，不擅自改投 upstream 或绕过权限。
+- 合并后在主工作区执行 `git pull --ff-only origin main`，再删除功能 worktree、origin 远程分支与本地分支。
