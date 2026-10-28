@@ -1,0 +1,35 @@
+.option {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  border: 1px solid transparent;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+.option::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: var(--w, 0%);
+  background: color-mix(in oklab, var(--vermillion) 11%, transparent);
+  transition: width 0.6s var(--ease-out-quart);
+}
+.option > * {
+  position: relative;
+}
+.option.zero {
+  opacity: 0.42;
+}
+.option.zero .label {
+  text-decoration: line-through;
+}
+.option.win {
+  border-color: var(--vermillion);
+  background: color-mix(in oklab, var(--vermillion) 9%, transparent);
+}

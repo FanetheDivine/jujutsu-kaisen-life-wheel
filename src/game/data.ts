@@ -1,94 +1,19 @@
-import { mulberry32, seedOf } from './random'
+import { getState } from '../store/gameStore'
+import { BY } from './options'
+import { RANKS, RI } from './ranks'
+import { EFFORT_BONUS, domLabel, oppOf, power, techLabel } from './rules'
 import type {
-  AppState,
   BattleFoe,
-  BattleLog,
-  BattleSide,
   CausalityRule,
-  DerivedLife,
-  DistributionNote,
   EventDefinition,
   KitOption,
-  Rank,
   ResultContext,
   Stage,
-  WeightChange,
   Weights,
   WheelOption,
 } from './types'
 
-/* =====================================================================
-   咒术回战 · 抽选人生 v3
-   · 转盘扇区面积 = 当前几率（动态权重）
-   · 前轮结果改写后轮：可加权、可归零（banned）、可整轮跳过
-   · 轮次队列可在落地后动态插入：经历 / 缺席原因 / 技能 / 咒具 / 战斗回合 / 战后成长
-   ===================================================================== */
-
-/* ---------- 版本号（页面徽章、页脚与 Markdown 档案都从这里取） ---------- */
-const VERSION = 'v6.0'
-const VERSION_DATE = '2026-10-15'
-const VERSION_NOTE =
-  '多场战斗（百鬼夜行 / 少年院 / 涩谷事变 / 死灭回游 / 新宿决战）+ 战后成长 + 早死分支'
-
-const mod360 = (angle: number): number => ((angle % 360) + 360) % 360
-const $ = <T extends Element = HTMLElement>(selector: string): T => {
-  const element = document.querySelector<T>(selector)
-  if (!element) throw new Error(`页面缺少元素：${selector}`)
-  return element
-}
-const HTML_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;' }
-const esc = (value: unknown): string =>
-  String(value).replace(/[&<>]/g, (character) => HTML_ESCAPES[character])
-
-/* ---------- 字母等级 E / C / B / A / S / SS / EX ---------- */
-const RANK_SC: Record<Rank, number> = { E: 12, C: 26, B: 40, A: 55, S: 70, SS: 85, EX: 100 }
-const RANK_IDX: Record<Rank, number> = { E: 1, C: 2, B: 3, A: 4, S: 5, SS: 6, EX: 7 }
-const RANKS: Array<{ k: Rank; w: number }> = [
-  { k: 'E', w: 1.5 },
-  { k: 'C', w: 1.9 },
-  { k: 'B', w: 1.6 },
-  { k: 'A', w: 1.05 },
-  { k: 'S', w: 0.52 },
-  { k: 'SS', w: 0.16 },
-  { k: 'EX', w: 0.045 },
-]
-const RNK = (context: ResultContext, key: string): Rank | null => {
-  const rank = context[key]?.split('_').pop()
-  return rank && rank in RANK_SC ? (rank as Rank) : null
-}
-const RV = (context: ResultContext, key: string): number => {
-  const rank = RNK(context, key)
-  return rank ? RANK_SC[rank] : 0
-}
-const RI = (context: ResultContext, key: string): number => {
-  const rank = RNK(context, key)
-  return rank ? RANK_IDX[rank] : 0
-}
-const rankOfScore = (score: number): Rank =>
-  score >= 90
-    ? 'EX'
-    : score >= 78
-      ? 'SS'
-      : score >= 65
-        ? 'S'
-        : score >= 50
-          ? 'A'
-          : score >= 35
-            ? 'B'
-            : score >= 20
-              ? 'C'
-              : 'E'
-
-const DIMS = [
-  { k: 'dim_ce', n: '咒力总量' },
-  { k: 'dim_ct', n: '咒力操控' },
-  { k: 'dim_tj', n: '体术' },
-  { k: 'dim_bd', n: '体质' },
-  { k: 'dim_lk', n: '外貌' },
-  { k: 'dim_in', n: '智谋' },
-]
-
-function dimStage(
+export function dimStage(
   id: string,
   name: string,
   desc: string,
@@ -116,7 +41,7 @@ function dimStage(
 /* =====================================================================
    核心轮盘
    ===================================================================== */
-const CORE: Stage[] = [
+export const CORE: Stage[] = [
   {
     id: 'era',
     name: '入场时期',
@@ -3428,7 +3353,7 @@ const CORE: Stage[] = [
 /* =====================================================================
    技能盘 / 咒具
    ===================================================================== */
-const SKILL_DEFS = [
+export const SKILL_DEFS = [
   {
     id: 'sk_simple',
     s: '简易领域',
@@ -3556,7 +3481,7 @@ const SKILL_DEFS = [
     hint: '把领域揉进武术动作里的高等技术：每一次出拳都带着领域的余韵。',
   },
 ]
-const GEAR_DEFS = [
+export const GEAR_DEFS = [
   {
     id: 'gr_yuyun',
     s: '游云',
@@ -3649,7 +3574,7 @@ const GEAR_DEFS = [
     hint: '不属于任何名录的武器——名字将按你的术式与出身生成。',
   },
 ]
-function chosenSkills(c: ResultContext): string[] {
+export function chosenSkills(c: ResultContext): string[] {
   return Object.keys(c)
     .filter(
       (k) =>
@@ -3660,7 +3585,7 @@ function chosenSkills(c: ResultContext): string[] {
     )
     .map((k) => c[k])
 }
-function skillStageFor(i: number | string, title?: string): Stage {
+export function skillStageFor(i: number | string, title?: string): Stage {
   const st: Stage = {
     id: 'skill' + i,
     name: title || '掌握的技能 ' + i,
@@ -3866,7 +3791,7 @@ function skillStageFor(i: number | string, title?: string): Stage {
   }
   return st
 }
-function gearStageFor(i: number): Stage {
+export function gearStageFor(i: number): Stage {
   return {
     id: 'gear' + i,
     name: '咒具 ' + i,
@@ -3976,7 +3901,7 @@ function gearStageFor(i: number): Stage {
     ),
   }
 }
-const SKILL_COUNT: Stage = {
+export const SKILL_COUNT: Stage = {
   id: 'skillCount',
   name: '掌握技能数量',
   kind: 'skill',
@@ -4108,7 +4033,7 @@ const SKILL_COUNT: Stage = {
     },
   ],
 }
-const GEAR_COUNT: Stage = {
+export const GEAR_COUNT: Stage = {
   id: 'gearCount',
   name: '制作咒具 · 数量',
   kind: 'gear',
@@ -4167,7 +4092,7 @@ const GEAR_COUNT: Stage = {
 }
 
 /* ---------- 束缚链（借鉴「是否存在束缚倾向 → 束缚数 → 束缚理念」） ---------- */
-const VOW_GATE: Stage = {
+export const VOW_GATE: Stage = {
   id: 'vowGate',
   name: '是否存在束缚倾向',
   kind: 'vow',
@@ -4234,7 +4159,7 @@ const VOW_GATE: Stage = {
     },
   ],
 }
-const VOW_COUNT: Stage = {
+export const VOW_COUNT: Stage = {
   id: 'vowCount',
   name: '束缚数',
   kind: 'vow',
@@ -4264,7 +4189,7 @@ const VOW_COUNT: Stage = {
     },
   ],
 }
-const VOW_IDEAS = [
+export const VOW_IDEAS = [
   {
     id: 'vw_sweet',
     s: '戒甜食',
@@ -4322,7 +4247,7 @@ const VOW_IDEAS = [
     hint: '若你本无咒力，这一条能把它「贷」回来；账单会在某天到期。',
   },
 ]
-function vowStageFor(i: number): Stage {
+export function vowStageFor(i: number): Stage {
   return {
     id: 'vow' + i,
     name: '束缚 ' + i + ' · 理念',
@@ -4377,7 +4302,7 @@ function vowStageFor(i: number): Stage {
   }
 }
 /* ---------- 御三家 · 你出自哪一家（仅出身为 o2 时动态插入） ---------- */
-const CLAN: Stage = {
+export const CLAN: Stage = {
   id: 'clan',
   name: '御三家 · 你出自哪一家',
   kind: 'core',
@@ -4450,7 +4375,7 @@ const CLAN: Stage = {
 }
 
 /* ---------- 决战阵营 / 后世评价 ---------- */
-const BATTLE_SIDE: Stage = {
+export const BATTLE_SIDE: Stage = {
   id: 'battleSide',
   name: '决战阵营',
   kind: 'battle',
@@ -4543,7 +4468,7 @@ const BATTLE_SIDE: Stage = {
     },
   ],
 }
-const LEGACY: Stage = {
+export const LEGACY: Stage = {
   id: 'legacy',
   name: '后世评价',
   kind: 'legacy',
@@ -4757,7 +4682,7 @@ const LEGACY: Stage = {
 /* =====================================================================
    经历轮
    ===================================================================== */
-const EVENT_DEFS: EventDefinition[] = [
+export const EVENT_DEFS: EventDefinition[] = [
   {
     id: 'ev0',
     eraIdx: 2,
@@ -5473,9 +5398,9 @@ const EVENT_DEFS: EventDefinition[] = [
    事件战：百鬼夜行 / 少年院 / 涩谷事变 / 死灭回游 / 新宿决战 均可开战
    敌人按「你在该事件里的立场 + 决战阵营 + 你的强度」自动匹配，不再只有终局之战
    ===================================================================== */
-const BOUT_EVENTS = ['ev0', 'ev2', 'ev3', 'ev4', 'ev5']
-const BOUT_DIFF: Record<string, number> = { 0: 5, 2: 4, 3: 7, 4: 6, 5: 9 } // 各事件的基准难度（简报模式用）
-const BOUT_KIT: Record<string, KitOption[]> = {
+export const BOUT_EVENTS = ['ev0', 'ev2', 'ev3', 'ev4', 'ev5']
+export const BOUT_DIFF: Record<string, number> = { 0: 5, 2: 4, 3: 7, 4: 6, 5: 9 } // 各事件的基准难度（简报模式用）
+export const BOUT_KIT: Record<string, KitOption[]> = {
   crowd: [
     { k: 'flow', s: '咒力奔流', label: '咒灵群 · 咒力奔流', base: 1.6, pw: 5 },
     { k: 'swarm', s: '数量压制', label: '数量压制（四面八方）', base: 1.3, pw: 6 },
@@ -5509,14 +5434,14 @@ const BOUT_KIT: Record<string, KitOption[]> = {
   ],
   // 注：key 为 'sukuna' 时直接用 ENEMY_KIT.b10（它在下方定义，此处不能提前引用）
 }
-function eventDefinition(evId: string): EventDefinition {
+export function eventDefinition(evId: string): EventDefinition {
   const definition = EVENT_DEFS.find((item) => item.id === evId)
   if (!definition) throw new Error('未知事件：' + evId)
   return definition
 }
-const boutKit = (key: string): KitOption[] =>
+export const boutKit = (key: string): KitOption[] =>
   key === 'sukuna' ? ENEMY_KIT.b10 : BOUT_KIT[key] || GENERIC_KIT
-function boutFoe(evId: string, c: ResultContext): BattleFoe {
+export function boutFoe(evId: string, c: ResultContext): BattleFoe {
   if (evId === 'ev0')
     return c.ev0 === 'ev0_d'
       ? {
@@ -5602,14 +5527,14 @@ function boutFoe(evId: string, c: ResultContext): BattleFoe {
         }
 }
 /* 事件战的「分差」：演出过就用真实累计；简报模式则用战力对事件难度估算 */
-function boutDiffOf(c: ResultContext, evId: string): number {
-  const b = state.battle
+export function boutDiffOf(c: ResultContext, evId: string): number {
+  const b = getState().battle
   if (b.bout === evId) return b.diff
   const n = evId.slice(2)
   const foe = boutFoe(evId, c)
   return Math.round(power(c) / 8) - (BOUT_DIFF[n] || 5) - (foe.bonus || 0)
 }
-function boutRoundsStage(evId: string): Stage {
+export function boutRoundsStage(evId: string): Stage {
   const n = evId.slice(2),
     def = eventDefinition(evId)
   const o1 = 'br' + n + '_1',
@@ -5665,7 +5590,7 @@ function boutRoundsStage(evId: string): Stage {
     ],
   }
 }
-function boutDuelStage(evId: string): Stage {
+export function boutDuelStage(evId: string): Stage {
   const n = evId.slice(2),
     def = eventDefinition(evId)
   return {
@@ -5803,7 +5728,7 @@ function boutDuelStage(evId: string): Stage {
   }
 }
 /* 还有没有「新的技术」可学（把技能轮的主要门槛复算一遍，避免抽到「学会新技能」却没东西可学） */
-function learnableCount(c: ResultContext): number {
+export function learnableCount(c: ResultContext): number {
   const owned = chosenSkills(c)
   let n = 0
   ;(SKILL_DEFS || []).forEach((s) => {
@@ -5841,7 +5766,7 @@ function learnableCount(c: ResultContext): number {
   })
   return n
 }
-function boutGrowthStage(evId: string): Stage {
+export function boutGrowthStage(evId: string): Stage {
   const n = evId.slice(2),
     def = eventDefinition(evId)
   return {
@@ -5950,14 +5875,14 @@ function boutGrowthStage(evId: string): Stage {
     ],
   }
 }
-function boutSkillStage(evId: string): Stage {
+export function boutSkillStage(evId: string): Stage {
   const n = evId.slice(2),
     def = eventDefinition(evId)
   const st = skillStageFor('g' + n)
   st.name = '「' + def.name + '」之后习得的技术'
   return st
 }
-function boutLossStage(evId: string): Stage {
+export function boutLossStage(evId: string): Stage {
   const n = evId.slice(2),
     def = eventDefinition(evId)
   return Object.assign({}, LOSS, {
@@ -5967,22 +5892,22 @@ function boutLossStage(evId: string): Stage {
   })
 }
 /* 在某场事件战中战死：后面的经历全部缺席，最终决战也不会再有你 */
-function deadAt(c: ResultContext): string | null {
+export function deadAt(c: ResultContext): string | null {
   for (const id of BOUT_EVENTS) {
     if (c['ed' + id.slice(2)] === 'ed5') return id
   }
   return null
 }
-function deadBefore(c: ResultContext, evId: string): boolean {
+export function deadBefore(c: ResultContext, evId: string): boolean {
   const d = deadAt(c)
   if (!d) return false
   return BOUT_EVENTS.indexOf(d) < BOUT_EVENTS.indexOf(evId) || (evId === 'ev6' && !!d)
 }
 
-function priorDead(c: ResultContext): boolean {
+export function priorDead(c: ResultContext): boolean {
   return Object.keys(c).some((k) => k.indexOf('abs_') === 0 && String(c[k]).slice(-5) === '_dead')
 }
-function makeEventStage(def: EventDefinition): Stage {
+export function makeEventStage(def: EventDefinition): Stage {
   const rules = def.rules.slice()
   const st: Stage = {
     id: def.id,
@@ -6034,7 +5959,7 @@ function makeEventStage(def: EventDefinition): Stage {
   })
   return st
 }
-function absenceStage(eventId: string): Stage {
+export function absenceStage(eventId: string): Stage {
   const def = EVENT_DEFS.find((d) => d.id === eventId)
   const evName = def ? def.name : '那个时点'
   const idOf = (k: string): string => 'abs_' + eventId + '_' + k
@@ -6141,7 +6066,7 @@ function absenceStage(eventId: string): Stage {
 /* =====================================================================
    战斗
    ===================================================================== */
-const OPPONENT: Record<string, string> = {
+export const OPPONENT: Record<string, string> = {
   b1: '五条悟',
   b2: '乙骨忧太与祈本里香',
   b3: '虎杖悠仁',
@@ -6156,7 +6081,7 @@ const OPPONENT: Record<string, string> = {
   b12: '你的同期',
   b13: '一只无名特级咒灵',
 }
-const OPPONENT_NOTE: Record<string, string> = {
+export const OPPONENT_NOTE: Record<string, string> = {
   b1: '你不可能赢他，你只能活下来',
   b2: '纯粹的咒力洪流',
   b3: '他不想杀你，但他会打到你说实话',
@@ -6171,7 +6096,7 @@ const OPPONENT_NOTE: Record<string, string> = {
   b12: '你们本该并肩，如今只能有一个站起来',
   b13: '没有人会为你收尸，也没有人会替你挡一下',
 }
-const OPP_BONUS: Record<string, number> = {
+export const OPP_BONUS: Record<string, number> = {
   b1: 5,
   b10: 5,
   b9: 3,
@@ -6186,7 +6111,7 @@ const OPP_BONUS: Record<string, number> = {
   b3: 0,
   b4: 0,
 }
-const ENEMY_KIT: Record<string, KitOption[]> = {
+export const ENEMY_KIT: Record<string, KitOption[]> = {
   b10: [
     { k: 'slash', s: '斩击「解」', label: '斩击「解」', base: 1.6, pw: 8 },
     { k: 'open', s: '「开」火焰', label: '「开」· 火焰', base: 1.2, pw: 9 },
@@ -6238,7 +6163,7 @@ const ENEMY_KIT: Record<string, KitOption[]> = {
     { k: 'domain', s: '领域', label: '展开领域', base: 0.7, pw: 10 },
   ],
 }
-const GENERIC_KIT: KitOption[] = [
+export const GENERIC_KIT: KitOption[] = [
   { k: 'jutsu', s: '术式攻击', label: '术式攻击', base: 1.6, pw: 5 },
   { k: 'domain', s: '展开领域', label: '展开领域', base: 0.8, pw: 9 },
   { k: 'gear', s: '咒具', label: '咒具攻击', base: 1.0, pw: 4 },
@@ -6247,7 +6172,7 @@ const GENERIC_KIT: KitOption[] = [
   { k: 'guard', s: '防御', label: '防御 · 回避', base: 0.8, pw: 2 },
 ]
 /* 宿傩「原身形态」专属招式组：四臂、双面，火力全面升级 */
-const SUKUNA_TRUE_KIT: KitOption[] = [
+export const SUKUNA_TRUE_KIT: KitOption[] = [
   { k: 'slash', s: '斩击「解」', label: '四臂斩击「解」', base: 1.5, pw: 9 },
   { k: 'open', s: '火焰箭「竈」', label: '「开」· 火焰箭「竈」', base: 1.2, pw: 11 },
   {
@@ -6262,8 +6187,8 @@ const SUKUNA_TRUE_KIT: KitOption[] = [
   { k: 'tai', s: '四臂肉搏', label: '四臂 · 肉搏', base: 0.8, pw: 7 },
 ]
 
-const ROUND_NUM: Record<string, number> = { r1: 1, r2: 2, r3: 3, r4: 4, r5: 5 }
-const BATTLE_ROUNDS: Stage = {
+export const ROUND_NUM: Record<string, number> = { r1: 1, r2: 2, r3: 3, r4: 4, r5: 5 }
+export const BATTLE_ROUNDS: Stage = {
   id: 'battleRounds',
   name: '决战 · 交手回合数',
   kind: 'battle',
@@ -6357,8 +6282,8 @@ const BATTLE_ROUNDS: Stage = {
   ],
 }
 
-function playerActionStage(idx: string, round: number, extra: boolean): Stage {
-  const c = state.results
+export function playerActionStage(idx: string, round: number, extra: boolean): Stage {
+  const c = getState().results
   const bonus = Math.round(power(c) / 20) + (EFFORT_BONUS[c.effort] || 0) // 综合战力 + 努力程度 → 每一击的加成
   const has = (id: string): boolean => chosenSkills(c).indexOf(id) >= 0 || c['skill_new'] === id
   const gearList = Object.keys(c)
@@ -6391,8 +6316,8 @@ function playerActionStage(idx: string, round: number, extra: boolean): Stage {
     pw: 3,
     hint: '先活下来，再谈别的。',
   })
-  const jutsuLabel = c.technique ? techLabel(c) : state.jutsuName || '顺转'
-  const domNameTxt = c.domainName ? domLabel(c) : state.domainName || '领域'
+  const jutsuLabel = c.technique ? techLabel(c) : getState().jutsuName || '顺转'
+  const domNameTxt = c.domainName ? domLabel(c) : getState().domainName || '领域'
   if (['t2', 't4', 't5'].indexOf(c.talent) >= 0)
     opts.push({
       id: 'act' + idx + '_jutsu',
@@ -6582,14 +6507,14 @@ function playerActionStage(idx: string, round: number, extra: boolean): Stage {
     rules: [
       {
         name: '领域已经用过一次',
-        when: () => state.battle.domainUsed,
+        when: () => getState().battle.domainUsed,
         apply: (w: Weights) => {
           if (w['act' + idx + '_domain'] !== undefined) w['act' + idx + '_domain'] = 0
         },
       },
       {
         name: '咒力见底 · 用不出大招',
-        when: () => state.battle.ce <= 0,
+        when: () => getState().battle.ce <= 0,
         apply: (w: Weights) => {
           ;['_domain', '_extreme', '_spread', '_rev'].forEach((s) => {
             if (w['act' + idx + s] !== undefined) w['act' + idx + s] = 0
@@ -6632,7 +6557,7 @@ function playerActionStage(idx: string, round: number, extra: boolean): Stage {
       },
       {
         name: '已受重伤 · 倾向治疗与防御',
-        when: () => state.battle.diff < -4,
+        when: () => getState().battle.diff < -4,
         apply: (w: Weights) => {
           ;['_rev', '_guard', '_simple'].forEach((s) => {
             if (w['act' + idx + s] !== undefined) w['act' + idx + s] += 0.9
@@ -6714,7 +6639,7 @@ function playerActionStage(idx: string, round: number, extra: boolean): Stage {
       },
       {
         name: '狱门疆已经用掉了',
-        when: () => state.battle.prisonUsed,
+        when: () => getState().battle.prisonUsed,
         apply: (w: Weights) => {
           if (w['act' + idx + '_prison'] !== undefined) w['act' + idx + '_prison'] = 0
         },
@@ -6728,7 +6653,7 @@ function playerActionStage(idx: string, round: number, extra: boolean): Stage {
       },
       {
         name: '面对原身形态 · 你只能拼命',
-        when: () => state.battle.phase === 2,
+        when: () => getState().battle.phase === 2,
         apply: (w: Weights) => {
           if (w['act' + idx + '_guard'] !== undefined) w['act' + idx + '_guard'] -= 0.3
           ;['_domain', '_extreme', '_black', '_prison'].forEach((s) => {
@@ -6739,10 +6664,10 @@ function playerActionStage(idx: string, round: number, extra: boolean): Stage {
     ],
   }
 }
-function enemyActionStage(idx: string, round: number): Stage {
-  const opp = oppOf(state.results)
-  const phase2 = state.battle.phase === 2
-  const foe = state.battle.foe || null
+export function enemyActionStage(idx: string, round: number): Stage {
+  const opp = oppOf(getState().results)
+  const phase2 = getState().battle.phase === 2
+  const foe = getState().battle.foe || null
   const kit = foe
     ? boutKit(foe.key)
     : phase2 && opp === 'b10'
@@ -6750,11 +6675,11 @@ function enemyActionStage(idx: string, round: number): Stage {
       : ENEMY_KIT[opp] || GENERIC_KIT
   // 二番战：宿傩的种族加成减半、追加值减为 +1（他已经是一番战的手下败将，不该再叠满 buff）
   const bonus = foe
-    ? (foe.bonus || 0) + Math.round(power(state.results) / 62)
+    ? (foe.bonus || 0) + Math.round(power(getState().results) / 62)
     : (phase2 ? Math.round((OPP_BONUS[opp] || 0) * 0.5) : OPP_BONUS[opp] || 0) +
-      Math.round(power(state.results) / 45) +
+      Math.round(power(getState().results) / 45) +
       (phase2 ? 1 : 0)
-  const scale = 0.65 + power(state.results) / 160 // 对手的强度随你的实力伸缩
+  const scale = 0.65 + power(getState().results) / 160 // 对手的强度随你的实力伸缩
   return {
     id: 'eact' + idx,
     kind: 'atk',
@@ -6783,7 +6708,7 @@ function enemyActionStage(idx: string, round: number): Stage {
     rules: [
       {
         name: '对手已受创 · 转为保守',
-        when: () => state.battle.diff > 5,
+        when: () => getState().battle.diff > 5,
         apply: (w: Weights) => {
           Object.keys(w).forEach((k) => {
             if (k.slice(-6) === '_guard' || k.slice(-5) === '_heal') w[k] += 1.0
@@ -6792,7 +6717,7 @@ function enemyActionStage(idx: string, round: number): Stage {
       },
       {
         name: '对手占优 · 加大输出',
-        when: () => state.battle.diff < -5,
+        when: () => getState().battle.diff < -5,
         apply: (w: Weights) => {
           Object.keys(w).forEach((k) => {
             if (k.slice(-7) === '_domain' || k.slice(-6) === '_black') w[k] += 0.8
@@ -6802,7 +6727,7 @@ function enemyActionStage(idx: string, round: number): Stage {
     ],
   }
 }
-const DUEL: Stage = {
+export const DUEL: Stage = {
   id: 'duel',
   name: '决战 · 结算',
   kind: 'duel',
@@ -6842,7 +6767,7 @@ const DUEL: Stage = {
   rules: [
     {
       name: '交手占压倒优势',
-      when: () => state.battle.diff >= 10,
+      when: () => getState().battle.diff >= 10,
       apply: (w: Weights) => {
         w.w1 += 4.0
         w.w5 -= 0.5
@@ -6851,7 +6776,7 @@ const DUEL: Stage = {
     },
     {
       name: '交手形成碾压 · 胜负已无悬念',
-      when: () => state.battle.diff >= 24,
+      when: () => getState().battle.diff >= 24,
       apply: (w: Weights) => {
         w.w1 += 3.0
         w.w4 = 0.05
@@ -6861,7 +6786,7 @@ const DUEL: Stage = {
     },
     {
       name: '被彻底碾压 · 毫无还手之力',
-      when: () => state.battle.diff <= -24,
+      when: () => getState().battle.diff <= -24,
       apply: (w: Weights) => {
         w.w5 += 3.0
         w.w1 = 0.02
@@ -6870,7 +6795,7 @@ const DUEL: Stage = {
     },
     {
       name: '交手占优',
-      when: () => state.battle.diff >= 4 && state.battle.diff < 10,
+      when: () => getState().battle.diff >= 4 && getState().battle.diff < 10,
       apply: (w: Weights) => {
         w.w1 += 1.6
         w.w2 += 1.3
@@ -6879,7 +6804,7 @@ const DUEL: Stage = {
     },
     {
       name: '交手势均力敌',
-      when: () => state.battle.diff > -4 && state.battle.diff < 4,
+      when: () => getState().battle.diff > -4 && getState().battle.diff < 4,
       apply: (w: Weights) => {
         w.w2 += 0.8
         w.w3 += 1.1
@@ -6888,7 +6813,7 @@ const DUEL: Stage = {
     },
     {
       name: '交手落入下风',
-      when: () => state.battle.diff <= -4 && state.battle.diff > -10,
+      when: () => getState().battle.diff <= -4 && getState().battle.diff > -10,
       apply: (w: Weights) => {
         w.w4 += 1.6
         w.w3 += 0.8
@@ -6898,7 +6823,7 @@ const DUEL: Stage = {
     },
     {
       name: '交手被彻底压制',
-      when: () => state.battle.diff <= -10,
+      when: () => getState().battle.diff <= -10,
       apply: (w: Weights) => {
         w.w5 += 4.0
         w.w4 += 1.0
@@ -7057,7 +6982,7 @@ const DUEL: Stage = {
   ],
 }
 /* ---------- 宿傩专项：原身解放 · 二番战 ---------- */
-const SUKUNA_TRUE: Stage = {
+export const SUKUNA_TRUE: Stage = {
   id: 'sukunaTrue',
   name: '宿傩 · 是否解放原身',
   kind: 'battle',
@@ -7082,14 +7007,14 @@ const SUKUNA_TRUE: Stage = {
   rules: [
     {
       name: '你是压胜 · 他更有理由认真起来',
-      when: () => state.results.duel === 'w1',
+      when: () => getState().results.duel === 'w1',
       apply: (w: Weights) => {
         w.su_yes += 1.8
       },
     },
     {
       name: '你只是险胜 · 他也不过如此',
-      when: () => state.results.duel === 'w2',
+      when: () => getState().results.duel === 'w2',
       apply: (w: Weights) => {
         w.su_yes += 0.5
         w.su_no += 0.4
@@ -7097,21 +7022,21 @@ const SUKUNA_TRUE: Stage = {
     },
     {
       name: '你身上还有余力 · 他舍不得结束',
-      when: (c: ResultContext) => RI(c, 'dim_ce') >= 5 || state.battle.diff >= 8,
+      when: (c: ResultContext) => RI(c, 'dim_ce') >= 5 || getState().battle.diff >= 8,
       apply: (w: Weights) => {
         w.su_yes += 0.7
       },
     },
     {
       name: '你已强弩之末 · 他也懒得再玩',
-      when: () => state.battle.ce <= 1 && state.battle.diff < 6,
+      when: () => getState().battle.ce <= 1 && getState().battle.diff < 6,
       apply: (w: Weights) => {
         w.su_no += 0.9
       },
     },
     {
       name: '你用狱门疆封住了他',
-      when: () => state.battle.prisonUsed,
+      when: () => getState().battle.prisonUsed,
       apply: (w: Weights) => {
         w.su_yes = 0.05
       },
@@ -7139,7 +7064,7 @@ const SUKUNA_TRUE: Stage = {
     },
   ],
 }
-const BATTLE_ROUNDS2: Stage = {
+export const BATTLE_ROUNDS2: Stage = {
   id: 'battleRounds2',
   name: '二番战 · 交手回合数',
   kind: 'battle',
@@ -7159,7 +7084,7 @@ const BATTLE_ROUNDS2: Stage = {
     },
     {
       name: '你已耗尽 · 撑不了太久',
-      when: () => state.battle.ce <= 1,
+      when: () => getState().battle.ce <= 1,
       apply: (w: Weights) => {
         w.r1 += 0.5
         w.r4 -= 0.2
@@ -7188,7 +7113,7 @@ const BATTLE_ROUNDS2: Stage = {
     },
     {
       name: '受了重伤 · 速战速决',
-      when: () => state.battle.diff <= -4,
+      when: () => getState().battle.diff <= -4,
       apply: (w: Weights) => {
         w.r1 += 0.9
         w.r5 -= 0.5
@@ -7197,7 +7122,7 @@ const BATTLE_ROUNDS2: Stage = {
   ],
 }
 /* 二番战结算：更狠。id 复用 w1–w5，便于结局/后世评价直接读取最终结果 */
-const DUEL2: Stage = {
+export const DUEL2: Stage = {
   id: 'duel2',
   name: '二番战 · 结算',
   kind: 'duel',
@@ -7260,7 +7185,7 @@ const DUEL2: Stage = {
     },
     {
       name: '你的咒力已经见底',
-      when: () => state.battle.ce <= 0,
+      when: () => getState().battle.ce <= 0,
       apply: (w: Weights) => {
         w.w5 += 1.0
         w.w2 -= 0.3
@@ -7276,7 +7201,7 @@ const DUEL2: Stage = {
     },
     {
       name: '二番战 · 你打出了优势',
-      when: () => state.battle.diff >= 4,
+      when: () => getState().battle.diff >= 4,
       apply: (w: Weights) => {
         w.w1 += 2.4
         w.w2 += 1.6
@@ -7286,7 +7211,7 @@ const DUEL2: Stage = {
     },
     {
       name: '二番战 · 你被压着打',
-      when: () => state.battle.diff <= -4,
+      when: () => getState().battle.diff <= -4,
       apply: (w: Weights) => {
         w.w5 += 1.6
         w.w4 += 0.8
@@ -7295,7 +7220,7 @@ const DUEL2: Stage = {
     },
     {
       name: '用过狱门疆 · 你封住了他的退路',
-      when: () => state.battle.prisonUsed,
+      when: () => getState().battle.prisonUsed,
       apply: (w: Weights) => {
         w.w1 += 1.6
         w.w2 += 0.8
@@ -7312,7 +7237,7 @@ const DUEL2: Stage = {
     },
   ]),
 }
-const GROWTH: Stage = {
+export const GROWTH: Stage = {
   id: 'growth',
   name: '战后 · 是否有所成长',
   kind: 'growth',
@@ -7402,7 +7327,7 @@ const GROWTH: Stage = {
     },
   ],
 }
-const LOSS: Stage = {
+export const LOSS: Stage = {
   id: 'loss',
   name: '你失去了什么',
   kind: 'growth',
@@ -7464,7 +7389,7 @@ const LOSS: Stage = {
     },
   ],
 }
-const ENDING: Stage = {
+export const ENDING: Stage = {
   id: 'ending',
   name: '命运结局',
   kind: 'ending',
@@ -7948,1755 +7873,3 @@ const ENDING: Stage = {
       },
     ]),
 }
-
-/* ---------- 初始流程与索引 ---------- */
-const BASE_FLOW = [...CORE, VOW_GATE, SKILL_COUNT, BATTLE_SIDE, BATTLE_ROUNDS, ENDING, LEGACY]
-const ALL_STAGES: Stage[] = [
-  ...CORE,
-  SKILL_COUNT,
-  GEAR_COUNT,
-  VOW_GATE,
-  VOW_COUNT,
-  BATTLE_SIDE,
-  LEGACY,
-  ...EVENT_DEFS.map(makeEventStage),
-  ...EVENT_DEFS.map((d) => absenceStage(d.id)),
-  ...[1, 2, 3, 4, 5].map((i) => skillStageFor(i)),
-  ...[1, 2, 3, 4].map((i) => gearStageFor(i)),
-  ...[1, 2, 3].map((i) => vowStageFor(i)),
-  CLAN,
-  BATTLE_ROUNDS,
-  DUEL,
-  SUKUNA_TRUE,
-  BATTLE_ROUNDS2,
-  DUEL2,
-  GROWTH,
-  LOSS,
-  ENDING,
-]
-const BY: Record<string, WheelOption> = {}
-function register(st: Stage): Stage {
-  ;(st.options || []).forEach((o) => {
-    BY[o.id] = o
-  })
-  return st
-}
-ALL_STAGES.forEach(register)
-const labelOf = (id: string | null | undefined): string =>
-  id == null ? '' : BY[id] ? BY[id].label : id
-function stageById(id: string): Stage {
-  const stage = STAGES.find((item) => item.id === id) || ALL_STAGES.find((item) => item.id === id)
-  if (!stage) throw new Error('未知轮次：' + id)
-  return stage
-}
-const GIFT_BONUS: Record<string, number> = {
-  gift_none: 0,
-  gift_six: 5,
-  gift_arms: 4,
-  gift_binding: 3,
-  gift_rebirth: 3,
-  gift_half: 2,
-  gift_plasma: 1,
-  gift_desukunto: 2,
-}
-const EFFORT_BONUS: Record<string, number> = {
-  ef_lazy: -1,
-  ef_norm: 0,
-  ef_hard: 1,
-  ef_mad: 2,
-  ef_genius: 1,
-}
-function power(c: ResultContext): number {
-  if (DIMS.some((d) => !c[d.k])) return 0
-  const v =
-    0.28 * RV(c, 'dim_ce') +
-    0.2 * RV(c, 'dim_ct') +
-    0.2 * RV(c, 'dim_tj') +
-    0.15 * RV(c, 'dim_bd') +
-    0.05 * RV(c, 'dim_lk') +
-    0.12 * RV(c, 'dim_in')
-  return Math.max(0, Math.min(100, Math.round(v + (GIFT_BONUS[c.gift] || 0))))
-}
-/* 决战对手：由羁绊 + 决战阵营共同决定 */
-function oppOf(c: ResultContext): string {
-  const side = c.battleSide
-  // 站在宿傩一侧 → 挡在你面前的是五条悟与整个高专；
-  // 唯一的例外是「你的因果之人正是宿傩本人」——侍奉他的人，最后仍要独自面对他。
-  if (side === 'bs_sukuna') return c.bond === 'b10' ? 'b10' : 'b1'
-  if (side === 'bs_jujutsu') return c.bond === 'b1' ? 'b10' : c.bond || 'b13'
-  return c.bond || 'b13'
-}
-/* 术式 / 领域的名字：抽到具体名字就用具体的，抽到「自创」就用生成的 */
-function techLabel(c: ResultContext): string {
-  if (!c.technique) return '——'
-  if (c.technique === 'tc_original') return state.jutsuName || '自创术式'
-  return BY[c.technique] ? BY[c.technique].label : '自创术式'
-}
-function domLabel(c: ResultContext): string {
-  if (!c.domain || c.domain === 'd0') return '——'
-  if (c.domainName === 'dn_original') return state.domainName || '自创领域'
-  return BY[c.domainName]
-    ? BY[c.domainName].label.replace(/[「」（）]/g, '')
-    : state.domainName || '领域'
-}
-
-const state: AppState = {
-  i: 0,
-  results: {},
-  records: [],
-  rot: 0,
-  spinning: false,
-  auto: false,
-  sound: false,
-  done: false,
-  gen: 0,
-  raf: 0,
-  ctrl: null, // gen：每次「重新开始」+1，用于作废所有在途的旋转 / 落地 / 连抽 / API 流
-  battle: {
-    p: 0,
-    e: 0,
-    diff: 0,
-    ce: 3,
-    domainUsed: false,
-    rounds: 0,
-    log: [],
-    extraCount: 0,
-    phase: 1,
-    prisonUsed: false,
-    bout: '',
-    foe: null,
-  },
-  jutsuName: '',
-  domainName: '',
-  quickBout: false,
-}
-let STAGES: Stage[] = []
-function resetFlow() {
-  STAGES = BASE_FLOW.map((s) => s)
-}
-
-function distribution(idx: number) {
-  const st = STAGES[idx],
-    ctx = state.results
-  const base: Weights = {}
-  st.options.forEach((o) => (base[o.id] = o.base))
-  const w: Weights = { ...base },
-    notes: DistributionNote[] = [],
-    banned = new Set<string>()
-  ;(st.rules || []).forEach((r) => {
-    if (r.when && !r.when(ctx)) return
-    const before = { ...w }
-    r.apply(w, ctx)
-    const changes: WeightChange[] = []
-    st.options.forEach((o) => {
-      const d = w[o.id] - before[o.id]
-      if (Math.abs(d) > 1e-6) changes.push({ label: o.s || o.label, d, pp: 0 })
-      if (before[o.id] > 0 && w[o.id] <= 0) banned.add(o.id)
-    })
-    if (changes.length)
-      notes.push({ rule: typeof r.name === 'function' ? r.name(ctx) : r.name, changes })
-  })
-  for (const k in w) w[k] = Math.max(0, w[k])
-  banned.forEach((k) => {
-    w[k] = 0
-  })
-  let total = 0
-  for (const k in w) total += w[k]
-  const pct: Weights = {}
-  st.options.forEach((o) => (pct[o.id] = total ? (w[o.id] / total) * 100 : 0))
-  let bt = 0
-  for (const k in base) bt += base[k]
-  const bpct: Weights = {}
-  st.options.forEach((o) => (bpct[o.id] = (base[o.id] / bt) * 100))
-  notes.forEach((n) => n.changes.forEach((c) => (c.pp = (c.d / total) * 100)))
-  return { stage: st, w, pct, bpct, notes, total }
-}
-
-/* 找到下一个可抽的轮次；record=true 时，被跳过的轮次会补记为「此轮不存」 */
-function nextActiveIndex(from: number, record: boolean): number {
-  for (let i = from; i < STAGES.length; i++) {
-    const st = STAGES[i]
-    if (st.skipIf && st.skipIf(state.results)) {
-      if (record && !state.records.find((r) => r.stageId === st.id)) {
-        state.records.push({ stageId: st.id, value: null, skipped: true })
-      }
-      continue
-    }
-    return i
-  }
-  return -1
-}
-
-/* ---------- 落地后动态扩展 ---------- */
-function expandAfter(idx: number, stageId: string, pick: string): void {
-  const ins: Stage[] = []
-  if (stageId === 'origin' && pick === 'o2') ins.push(CLAN) // 御三家 → 立刻抽「哪一家」
-  if (stageId === 'era') {
-    const ei = ['e0', 'e1', 'e2', 'e3', 'e4', 'e5', 'e6'].indexOf(pick)
-    const evs = EVENT_DEFS.filter((d) => ei < d.eraIdx).map(makeEventStage)
-    const at = STAGES.findIndex((s) => s.id === 'battleRounds')
-    if (at >= 0 && evs.length) STAGES.splice(at, 0, ...evs)
-    return
-  }
-  if (stageId.indexOf('ev') === 0 && String(pick).slice(-4) === '_abs')
-    ins.push(absenceStage(stageId))
-  /* 事件战：只要你在场（没缺席），这一战就开打 */
-  if (BOUT_EVENTS.indexOf(stageId) >= 0 && String(pick).slice(-4) !== '_abs') {
-    ins.push(state.quickBout ? boutDuelStage(stageId) : boutRoundsStage(stageId))
-  }
-  if (/^br\d$/.test(stageId)) {
-    const n = stageId.slice(2),
-      evId = 'ev' + n
-    const r = Number(String(pick).slice(-1)) || 1
-    const b = state.battle
-    b.bout = evId
-    b.foe = boutFoe(evId, state.results)
-    b.p = 0
-    b.e = 0
-    b.diff = 0
-    b.ce = 3
-    b.domainUsed = false
-    b.extraCount = 0
-    b.rounds = r
-    for (let k = 1; k <= r; k++) {
-      ins.push(playerActionStage('v' + n + 'p' + k, k, false))
-      ins.push(enemyActionStage('v' + n + 'e' + k, k))
-    }
-    ins.push(boutDuelStage(evId))
-  }
-  if (/^ed\d$/.test(stageId)) {
-    const n = stageId.slice(2)
-    if (pick !== 'ed5') ins.push(boutGrowthStage('ev' + n)) // 死了就没有「之后」了
-  }
-  if (/^gr\d$/.test(stageId)) {
-    const n = stageId.slice(2)
-    if (pick === 'gr_skill') ins.push(boutSkillStage('ev' + n))
-    if (pick === 'gr_lose') ins.push(boutLossStage('ev' + n))
-  }
-  if (stageId === 'skillCount') {
-    const n = Number(String(pick).replace('kc', ''))
-    for (let k = 1; k <= n; k++) ins.push(skillStageFor(k))
-  }
-  if (stageId === 'vowGate' && pick === 'vow_yes') ins.push(VOW_COUNT)
-  if (stageId === 'vowCount') {
-    const n = Number(String(pick).replace('vc', ''))
-    for (let k = 1; k <= n; k++) ins.push(vowStageFor(k))
-  }
-  if (/^skill\d+$/.test(stageId) && pick === 'sk_gear') ins.push(GEAR_COUNT)
-  if (stageId === 'gearCount') {
-    const n = Number(String(pick).replace('gc', ''))
-    for (let k = 1; k <= n; k++) ins.push(gearStageFor(k))
-  }
-  if (stageId === 'duel' && oppOf(state.results) === 'b10' && (pick === 'w1' || pick === 'w2')) {
-    ins.push(SUKUNA_TRUE) // 首次击败宿傩 → 抽他要不要解放原身
-  }
-  if (stageId === 'sukunaTrue' && pick === 'su_yes') ins.push(BATTLE_ROUNDS2)
-  if (stageId === 'battleRounds' || stageId === 'battleRounds2') {
-    const second = stageId === 'battleRounds2'
-    let n = ROUND_NUM[pick] || 3
-    if ((state.results.grade === 'g7' || state.results.grade === 'g8') && n < 5) n += 1 // SS / EX 自动 +1，上限 5
-    if (!second) {
-      state.battle.bout = 'final'
-      state.battle.foe = null
-    }
-    if (second) {
-      // 二番战：重新计数，但一番战打出来的优势会带进来一部分（最多 ±5），咒力只剩一半
-      state.battle.phase = 2
-      state.battle.bout = 'final2'
-      state.battle.foe = null
-      const carry = Math.max(-2, Math.min(5, Math.round(state.battle.diff / 3)))
-      state.battle.p = carry > 0 ? carry : 0
-      state.battle.e = carry < 0 ? -carry : 0
-      state.battle.diff = carry
-      state.battle.ce = 3
-      state.battle.domainUsed = false
-      state.battle.extraCount = 0
-    }
-    state.battle.rounds = n
-    const pt = second ? 'q' : 'p',
-      et = second ? 'f' : 'e'
-    for (let r = 1; r <= n; r++) {
-      ins.push(playerActionStage(pt + r, r, false))
-      ins.push(enemyActionStage(et + r, r))
-    }
-    ins.push(second ? DUEL2 : DUEL)
-    if (!second) ins.push(GROWTH)
-  }
-  if (/^act[pq]\d+$/.test(stageId)) {
-    if (String(pick).slice(-6) === '_black' && state.battle.extraCount < 4) {
-      state.battle.extraCount += 2
-      const round = STAGES[idx].round
-      const ph = state.battle.phase || 1 // 二番战的追击轮 id 也要唯一
-      ins.push(playerActionStage('x' + ph + '_' + state.battle.extraCount + 'a', round ?? 0, true))
-      ins.push(playerActionStage('x' + ph + '_' + state.battle.extraCount + 'b', round ?? 0, true))
-    }
-  }
-  if (stageId === 'growth') {
-    if (pick === 'gr_skill') ins.push(skillStageFor('new', '战后习得的新技能'))
-    if (pick === 'gr_lose') ins.push(LOSS)
-  }
-  ins.forEach(register)
-  if (ins.length) STAGES.splice(idx + 1, 0, ...ins)
-}
-
-function applyAction(stageId: string, pick: string): void {
-  const st = STAGES.find((s) => s.id === stageId)
-  if (!st || st.kind !== 'atk') return
-  const opt = BY[pick]
-  const pw = (opt && opt.pw) || 2
-  const b = state.battle
-  const side: BattleSide = st.side || 'p'
-  if (side === 'p') {
-    b.p += pw
-    if (String(pick).indexOf('_domain') >= 0) b.domainUsed = true
-    if (String(pick).indexOf('_prison') >= 0) b.prisonUsed = true
-    if (String(pick).indexOf('_guard') < 0 && String(pick).indexOf('_rev') < 0) b.ce -= 1
-  } else {
-    b.e += pw
-  }
-  b.diff = b.p - b.e
-  b.log.push({
-    round: st.round ?? 0,
-    side,
-    extra: !!st.extra,
-    phase: b.phase || 1,
-    bout: b.bout || '',
-    label: opt ? opt.label : pick,
-    pw,
-  })
-}
-
-/* =====================================================================
-   渲染
-   ===================================================================== */
-function renderSteps() {
-  const box = $('#steps')
-  box.innerHTML = ''
-  STAGES.forEach((s, i) => {
-    const el = document.createElement('span')
-    const rec = state.records.find((r) => r.stageId === s.id)
-    el.className = 'step'
-    el.title = s.name
-    el.textContent = String(i + 1)
-    if (s.kind === 'atk') el.classList.add('atk')
-    if (rec) el.classList.add(rec.skipped ? 'skip' : 'done')
-    if (i === state.i && !rec) el.classList.add('active')
-    box.appendChild(el)
-  })
-  $('#trackFill').style.width =
-    ((state.records.length / Math.max(STAGES.length, 1)) * 100).toFixed(1) + '%'
-}
-
-function renderWheel(idx: number, hl: string | null): void {
-  const st = STAGES[idx],
-    dist = distribution(idx),
-    R = 178
-  const items = st.options.filter((o) => dist.pct[o.id] > 0.05)
-  const sum = items.reduce((a, o) => a + dist.pct[o.id], 0)
-  let acc = 0,
-    html = ''
-  const arcs = items.map((o) => {
-    const sz = (dist.pct[o.id] / sum) * 360,
-      a0 = acc
-    acc += sz
-    return { o, a0, a1: a0 + sz, sz }
-  })
-  arcs.forEach((arc, i) => {
-    const a0 = arc.a0 - 90,
-      a1 = arc.a1 - 90
-    const p = (ang: number, r: number): [number, number] => [
-      200 + r * Math.cos((ang * Math.PI) / 180),
-      200 + r * Math.sin((ang * Math.PI) / 180),
-    ]
-    const [x0, y0] = p(a0, R),
-      [x1, y1] = p(a1, R)
-    const large = arc.sz > 180 ? 1 : 0
-    const isHl = hl === arc.o.id
-    html +=
-      '<g class="sector ' +
-      (i % 2 ? 'b' : 'a') +
-      ' ' +
-      (isHl ? 'hl' : '') +
-      '"><path d="M200 200 L' +
-      x0.toFixed(2) +
-      ' ' +
-      y0.toFixed(2) +
-      ' A' +
-      R +
-      ' ' +
-      R +
-      ' 0 ' +
-      large +
-      ' 1 ' +
-      x1.toFixed(2) +
-      ' ' +
-      y1.toFixed(2) +
-      ' Z"/>'
-    const mid = (arc.a0 + arc.a1) / 2
-    if (arc.sz >= 5) {
-      const fs = arc.sz < 14 ? 9.5 : arc.sz < 26 ? 11 : arc.sz < 55 ? 12.5 : 13.5
-      const net = mod360(mid - 90)
-      const inner = net > 90 && net < 270 ? 90 : -90
-      const yT = (200 - R * 0.6).toFixed(1)
-      html +=
-        '<text x="200" y="' +
-        yT +
-        '" font-size="' +
-        fs +
-        '" text-anchor="middle" dominant-baseline="central" transform="rotate(' +
-        mid.toFixed(2) +
-        ' 200 200)"><tspan transform="rotate(' +
-        inner +
-        ' 200 ' +
-        yT +
-        ')">' +
-        esc(arc.o.s || arc.o.label) +
-        '</tspan></text>'
-    }
-    html += '</g>'
-  })
-  $('#wheel').innerHTML = html
-  $('#hubSub').textContent = 'ROUND ' + String(idx + 1).padStart(2, '0')
-}
-
-function renderStage() {
-  if (state.i >= STAGES.length) {
-    finish()
-    return
-  }
-  if (!state.jutsuName) derived() // 战斗轮的招式名需要术式/领域名先就位
-  const st = STAGES[state.i],
-    dist = distribution(state.i)
-  $('#stageKicker').textContent =
-    'ROUND ' + String(state.i + 1).padStart(2, '0') + ' / ' + STAGES.length + ' · ' + st.tag
-  $('#stageName').textContent = st.name
-  let desc = st.desc
-  const opp = oppOf(state.results)
-  if (st.id === 'duel')
-    desc =
-      '对手：' +
-      (OPPONENT[opp] || '你的命运本身') +
-      '（' +
-      (OPPONENT_NOTE[opp] || '') +
-      '）。' +
-      st.desc
-  if (st.id === 'duel2')
-    desc =
-      '对手：两面宿傩 · 原身形态（四臂、双面的真正肉体 —— 他受肉时用的那具躯壳已经被他撕开了）。' +
-      st.desc
-  if (st.id === 'battleRounds' || st.id === 'battleRounds2') {
-    if (state.results.grade === 'g7' || state.results.grade === 'g8')
-      desc += '【本局生效：' + labelOf(state.results.grade) + ' → 抽中后追加 1 回合，最多五回合】'
-  }
-  if (st.id === 'sukunaTrue') desc = '一番战的结果：' + labelOf(state.results.duel) + '。' + st.desc
-  if (st.kind === 'atk' && st.side === 'e')
-    desc =
-      (state.battle.foe
-        ? state.battle.foe.note + ' '
-        : state.battle.phase === 2
-          ? '他撕开了受肉的躯壳，露出四只手与两张脸。'
-          : '') +
-      (state.battle.foe ? state.battle.foe.name : OPPONENT[opp] || '对手') +
-      '这一手要打什么。'
-  $('#stageDesc').textContent = desc
-
-  const ul = $('#opts')
-  ul.innerHTML = ''
-  st.options.forEach((o) => {
-    const li = document.createElement('li')
-    const p = dist.pct[o.id],
-      d = p - dist.bpct[o.id]
-    li.className = 'opt' + (dist.w[o.id] <= 0 ? ' zero' : '')
-    li.dataset.id = o.id
-    li.style.setProperty('--w', p.toFixed(1) + '%')
-    const pw = o.pw ? ' <span class="rank">威力' + o.pw + '</span>' : ''
-    li.innerHTML =
-      '<span class="lbl">' +
-      esc(o.label) +
-      pw +
-      '</span>' +
-      '<span class="pct">' +
-      (dist.w[o.id] <= 0 ? '无缘' : p.toFixed(1) + '%') +
-      '</span>' +
-      '<span class="delta ' +
-      (d > 0.5 ? 'up' : d < -0.5 ? 'down' : '') +
-      '">' +
-      (Math.abs(d) < 0.5 ? '—' : (d > 0 ? '▲+' : '▼') + Math.abs(d).toFixed(0)) +
-      '</span>' +
-      (o.hint ? '<span class="hint">' + esc(o.hint) + '</span>' : '')
-    ul.appendChild(li)
-  })
-
-  $('#interfBody').innerHTML = dist.notes.length
-    ? '<ul>' +
-      dist.notes
-        .map(
-          (n) =>
-            '<li><b>' +
-            esc(n.rule) +
-            '</b> → ' +
-            n.changes
-              .map(
-                (c) =>
-                  esc(c.label) +
-                  ' <span style="color:' +
-                  (c.pp > 0 ? 'var(--vermillion)' : 'var(--indigo)') +
-                  '">' +
-                  (c.pp > 0 ? '↑' : '↓') +
-                  Math.abs(c.pp).toFixed(0) +
-                  'pp</span>',
-              )
-              .join(' ／ ') +
-            '</li>',
-        )
-        .join('') +
-      '</ul>'
-    : '<p class="empty-interf">此轮不受干涉。</p>'
-
-  renderWheel(state.i, null)
-  renderSteps()
-  $<HTMLButtonElement>('#spinBtn').disabled = false
-  $<HTMLButtonElement>('#spinBtn').textContent = st.kind === 'ending' ? '转 动 · 定 终 局' : '转 动'
-  $('#resolveBtn').hidden = !(
-    st.kind === 'atk' ||
-    /^br\d$/.test(st.id) ||
-    /^ed\d$/.test(st.id) ||
-    st.id === 'battleRounds' ||
-    st.id === 'battleRounds2' ||
-    st.id === 'duel' ||
-    st.id === 'duel2'
-  )
-}
-
-function renderLedger() {
-  const box = $('#ledger')
-  if (!state.records.length) {
-    box.innerHTML =
-      '<div class="empty-state"><span class="big">呪</span>尚未入场。<br>转动第一轮的瞬间，你的一生便开始被咒力书写。</div>'
-    $('#ledgerNote').textContent = '0 / ' + STAGES.length + ' 轮'
-    return
-  }
-  box.innerHTML = state.records
-    .map((r, k) => {
-      const st = stageById(r.stageId)
-      let val = r.skipped ? '——' : labelOf(r.value)
-      if (
-        !r.skipped &&
-        (r.stageId === 'battleRounds' || r.stageId === 'battleRounds2') &&
-        (state.results.grade === 'g7' || state.results.grade === 'g8')
-      )
-        val += ' ＋1（SS / EX 自动追加）'
-      const hint = r.skipped
-        ? st.skipText || '此轮不存'
-        : r.value && BY[r.value]
-          ? BY[r.value].hint || ''
-          : ''
-      const atk = st.kind === 'atk'
-      const pw =
-        atk && r.value && BY[r.value]
-          ? '<span class="rank"> +' + (BY[r.value].pw || 0) + '</span>'
-          : ''
-      return (
-        '<div class="ledger-row ' +
-        (r.skipped ? 'skipped' : '') +
-        ' ' +
-        (atk ? 'atkrow' : '') +
-        ' ' +
-        (k === state.records.length - 1 ? 'fresh' : '') +
-        '">' +
-        '<div class="ledger-idx">' +
-        (k + 1) +
-        '</div><div>' +
-        '<div class="ledger-stage">' +
-        esc(st.name) +
-        (st.kind === 'event' && st.title ? ' · ' + esc(st.title) : '') +
-        '</div>' +
-        '<div class="ledger-val">' +
-        esc(val) +
-        pw +
-        '</div>' +
-        (atk ? '' : '<div class="ledger-hint">' + esc(hint) + '</div>') +
-        '</div></div>'
-      )
-    })
-    .join('')
-  $('#ledgerNote').textContent = state.records.length + ' / ' + STAGES.length + ' 轮'
-}
-
-function renderBattle() {
-  const b = state.battle
-  if (!b.rounds) {
-    $('#battleBox').hidden = true
-    return
-  }
-  $('#battleBox').hidden = false
-  const oppLabel = b.foe ? b.foe.name : OPPONENT[oppOf(state.results)] || '对手'
-  const ph = b.phase || 1
-  $('#battleOpp').textContent = oppLabel + (ph === 2 ? '（原身）' : '')
-  $('#battleEnemyName').textContent =
-    (oppLabel.length > 5 ? oppLabel.slice(0, 5) : oppLabel) + (ph === 2 ? '·原身' : '')
-  const isEvent = !!b.foe
-  const done = isEvent
-    ? b.log.filter((l) => l.side === 'p' && !l.extra && l.bout === b.bout).length
-    : b.log.filter((l) => l.side === 'p' && !l.extra && (l.phase || 1) === ph).length
-  const head = isEvent ? '事件战 ' : ph === 2 ? '二番战 ' : ''
-  $('#battleRound').textContent =
-    head + '第 ' + Math.min(done, b.rounds) + ' / ' + b.rounds + ' 回合'
-  const max = Math.max(b.p, b.e, 1)
-  $('#bfP').style.width = (b.p / max) * 100 + '%'
-  $('#bfE').style.width = (b.e / max) * 100 + '%'
-  $('#bnP').textContent = String(b.p)
-  $('#bnE').textContent = String(b.e)
-}
-
-function renderStats() {
-  const c = state.results
-  $('#bars').innerHTML = DIMS.map((d) => {
-    const v = c[d.k] ? RV(c, d.k) : 0
-    const rk = c[d.k] ? RNK(c, d.k) : '—'
-    return (
-      '<div class="bar-row ' +
-      (c[d.k] ? '' : 'pending') +
-      '" title="' +
-      d.n +
-      ' ' +
-      v +
-      '">' +
-      '<span>' +
-      d.n +
-      '</span>' +
-      '<span class="bar-track"><span class="bar-fill" style="width:' +
-      v +
-      '%"></span></span>' +
-      '<span class="bar-num">' +
-      rk +
-      '</span></div>'
-    )
-  }).join('')
-  const p = power(c)
-  $('#powerNote').textContent = p ? '综合战力 ' + p + ' · ' + rankOfScore(p) : '综合战力 —'
-
-  derived()
-  const d = {
-    jutsu:
-      c.talent === 't6'
-        ? '无（看不见咒灵的眼睛）'
-        : c.talent === 't1'
-          ? '无术式 · 仅咒力操作与体术'
-          : c.talent === 't3'
-            ? '天与咒缚（以术式换取肉体）'
-            : c.technique
-              ? techLabel(c)
-              : '——',
-  }
-  let jutsuTxt = d.jutsu
-  if (c.technique && c.techNature && BY[c.techNature])
-    jutsuTxt += ' · ' + BY[c.techNature].label.split('（')[0]
-  let domTxt = '未展开'
-  if (c.domain === 'd1') domTxt = '「' + domLabel(c) + '」（未完）'
-  else if (c.domain === 'd2') domTxt = '「' + domLabel(c) + '」'
-  $('#nameChips').innerHTML = c.era
-    ? [
-        '<span class="chip">术式：<b>' + esc(jutsuTxt) + '</b></span>',
-        '<span class="chip">领域：<b>' + esc(domTxt) + '</b></span>',
-        '<span class="chip">称号：<b>' + esc(derived().title) + '</b></span>',
-      ].join('')
-    : '<span class="chip">术式 / 领域 / 称号 —— 尚未抽选</span>'
-
-  const sk = chosenSkills(c)
-    .map((id) => BY[id] && BY[id].label)
-    .filter(Boolean)
-  const gear = Object.keys(c)
-    .filter((k) => /^gear\d+$/.test(k))
-    .map((k) => BY[c[k]] && BY[c[k]].label)
-    .filter(Boolean)
-  const vows = Object.keys(c)
-    .filter((k) => /^vow\d+$/.test(k))
-    .map((k) => BY[c[k]] && BY[c[k]].label.split(' ——')[0])
-  const chips = []
-  if (sk.length) chips.push('<span class="chip">技能：<b>' + esc(sk.join('、')) + '</b></span>')
-  if (gear.length) chips.push('<span class="chip">咒具：<b>' + esc(gear.join('、')) + '</b></span>')
-  if (vows.length) chips.push('<span class="chip">束缚：<b>' + esc(vows.join('；')) + '</b></span>')
-  if (c.gift && c.gift !== 'gift_none')
-    chips.push('<span class="chip">天赋：<b>' + esc(labelOf(c.gift)) + '</b></span>')
-  if (c.luck) chips.push('<span class="chip">运气：<b>' + esc(labelOf(c.luck)) + '</b></span>')
-  if (c.growth) chips.push('<span class="chip">战后：<b>' + esc(labelOf(c.growth)) + '</b></span>')
-  $('#skillChips').innerHTML = chips.join('')
-
-  const endIdx = STAGES.findIndex((s) => s.kind === 'ending')
-  const reached =
-    state.records.some((r) => r.stageId === 'ending') || (endIdx >= 0 && state.i >= endIdx)
-  if (reached && endIdx >= 0) {
-    const sv = survivalRate()
-    $('#surviveV').textContent =
-      sv.toFixed(0) + '% · ' + (sv >= 70 ? '高' : sv >= 45 ? '中' : sv >= 22 ? '低' : '绝望')
-    $('#surviveHint').textContent = '由时代、六维、等级、阵营、羁绊、决战与战后成长共同折算。'
-  }
-}
-
-/* =====================================================================
-   派生命名
-   ===================================================================== */
-const A1 = [
-  '影',
-  '呪',
-  '灰',
-  '血',
-  '铁',
-  '雷',
-  '蚀',
-  '虚',
-  '星',
-  '氷',
-  '炎',
-  '骨',
-  '哭',
-  '镜',
-  '锁',
-  '雾',
-  '棘',
-  '空',
-  '罪',
-  '溺',
-  '骸',
-  '蛇',
-  '鸦',
-  '刃',
-  '霜',
-  '尘',
-]
-const A2 = [
-  '蚀',
-  '葬',
-  '鸣',
-  '缚',
-  '噬',
-  '燃',
-  '裂',
-  '堕',
-  '醒',
-  '巡',
-  '缠',
-  '沈',
-  '乱',
-  '赦',
-  '裁',
-  '溢',
-  '枯',
-  '孕',
-  '坠',
-  '歌',
-  '缝',
-  '融',
-  '烬',
-  '离',
-]
-const C1 = [
-  '嵌合',
-  '呪胎',
-  '无量',
-  '伏魔',
-  '诛伏',
-  '蚀尽',
-  '残月',
-  '血海',
-  '无间',
-  '灰劫',
-  '星霜',
-  '虚数',
-  '百鬼',
-  '孤舟',
-  '永夜',
-]
-const C2 = [
-  '暗翳庭',
-  '戴天',
-  '空处',
-  '御廚子',
-  '赐死',
-  '轮回',
-  '葬场',
-  '之渊',
-  '孤狱',
-  '回廊',
-  '地狱',
-  '禁域',
-  '之匣',
-  '残响',
-]
-function derived(): DerivedLife {
-  const c = state.results
-  const rnd = mulberry32(seedOf(ALL_STAGES.map((s) => c[s.id] || '-').join('|')))
-  const pick = <T>(arr: T[]): T => arr[Math.floor(rnd() * arr.length)]
-  state.jutsuName = '「' + pick(A1) + pick(A2) + '」'
-  state.domainName = pick(C1) + pick(C2)
-  let jutsu = '——'
-  if (c.talent === 't6') jutsu = '无（看不见咒灵的眼睛）'
-  else if (c.talent === 't1') jutsu = '无术式 · 仅咒力操作与体术'
-  else if (c.talent === 't3') jutsu = '天与咒缚（以术式换取肉体）'
-  else if (c.technique) jutsu = techLabel(c)
-  else if (c.talent) jutsu = state.jutsuName + '术式'
-  if (c.technique && c.techNature)
-    jutsu += ' · ' + (BY[c.techNature] ? BY[c.techNature].label.split('（')[0] : '')
-  let dom = '未展开'
-  if (c.domain === 'd1') dom = '「' + domLabel(c) + '」（未完）'
-  else if (c.domain === 'd2') dom = '「' + domLabel(c) + '」'
-  let role
-  if (c.ending === 'x5') role = '王'
-  else if (c.ending === 'x7') role = '师'
-  else if (c.origin === 'o4') role = '咒灵'
-  else if (c.origin === 'o5') role = '容器'
-  else if (c.faction === 'f7') role = '路人'
-  else role = pick(['咒术师', '剑客', '审判者', '放浪者', '观测者', '守门人', '祓除者'])
-  return {
-    jutsu,
-    dom,
-    title:
-      pick([
-        '残秽',
-        '无明',
-        '狱门',
-        '星浆',
-        '逆缘',
-        '不死',
-        '残照',
-        '白霜',
-        '百鬼',
-        '虚数',
-        '傀儡',
-        '喰',
-      ]) +
-      '的' +
-      role,
-  }
-}
-function survivalRate(): number {
-  const idx = STAGES.findIndex((s) => s.kind === 'ending')
-  if (idx < 0) return 0
-  const d = distribution(idx)
-  return ['x2', 'x5', 'x6', 'x7', 'x9'].reduce((a, k) => a + (d.pct[k] || 0), 0)
-}
-
-/* =====================================================================
-   音效
-   ===================================================================== */
-let ac: AudioContext | null = null
-function beep(freq: number, dur: number, vol: number): void {
-  if (!state.sound) return
-  try {
-    const AudioContextImpl =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext?: new () => AudioContext }).webkitAudioContext
-    if (!AudioContextImpl) return
-    ac = ac || new AudioContextImpl()
-    const o = ac.createOscillator(),
-      g = ac.createGain()
-    o.type = 'triangle'
-    o.frequency.value = freq
-    g.gain.setValueAtTime(0, ac.currentTime)
-    g.gain.linearRampToValueAtTime(vol, ac.currentTime + 0.005)
-    g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + dur)
-    o.connect(g)
-    g.connect(ac.destination)
-    o.start()
-    o.stop(ac.currentTime + dur + 0.02)
-  } catch {
-    // 浏览器不支持或禁止音频时静默降级。
-  }
-}
-
-/* =====================================================================
-   转动
-   ===================================================================== */
-function pickWeighted(w: Weights): string | null {
-  const ids = Object.keys(w).filter((k) => w[k] > 0)
-  if (!ids.length) return null // 本轮所有选项都被前面的因果排除了
-  const total = ids.reduce((a, k) => a + w[k], 0)
-  let r = Math.random() * total
-  for (const k of ids) {
-    r -= w[k]
-    if (r <= 0) return k
-  }
-  return ids[ids.length - 1]
-}
-
-function doSpin(duration: number): void {
-  if (state.spinning || state.done || state.i >= STAGES.length) return
-  state.spinning = true
-  $<HTMLButtonElement>('#spinBtn').disabled = true
-  $<HTMLButtonElement>('#skipBtn').disabled = true
-  $<HTMLButtonElement>('#autoBtn').disabled = true
-
-  const idx = state.i,
-    dist = distribution(idx)
-  const pick = pickWeighted(dist.w)
-  const items = dist.stage.options.filter((o) => dist.pct[o.id] > 0.05)
-  const sum = items.reduce((a, o) => a + dist.pct[o.id], 0)
-  let acc = 0,
-    arc: { a0: number; sz: number } | null = null
-  for (const o of items) {
-    const sz = (dist.pct[o.id] / sum) * 360
-    if (o.id === pick) {
-      arc = { a0: acc, sz }
-      break
-    }
-    acc += sz
-  }
-  arc = arc || { a0: 0, sz: 360 / Math.max(items.length, 1) }
-  const margin = Math.min(arc.sz * 0.3, 5)
-  const theta = arc.a0 + margin + Math.random() * Math.max(arc.sz - margin * 2, 0.2)
-  const turns = duration < 1200 ? 2 : 4 + Math.floor(Math.random() * 3)
-  const target = state.rot + turns * 360 + mod360(mod360(-theta) - mod360(state.rot))
-
-  const wheelEl = $('#wheel')
-  wheelEl.style.setProperty('--dur', duration + 'ms')
-  let lastIdx = -1,
-    raf = 0
-  const gen = state.gen
-  const tickLoop = () => {
-    if (state.gen !== gen) return // 已重新开始：停止咔哒声循环
-    const tr = getComputedStyle(wheelEl).transform
-    if (tr && tr !== 'none') {
-      const m = new DOMMatrix(tr)
-      const deg = (Math.atan2(m.b, m.a) * 180) / Math.PI
-      const cur = Math.floor(mod360(-deg) / 5)
-      if (cur !== lastIdx) {
-        lastIdx = cur
-        beep(1120 + Math.random() * 160, 0.04, 0.045)
-      }
-    }
-    raf = requestAnimationFrame(tickLoop)
-  }
-  raf = requestAnimationFrame(tickLoop)
-  state.raf = raf
-  requestAnimationFrame(() => {
-    wheelEl.style.transform = 'rotate(' + target + 'deg)'
-  })
-
-  setTimeout(() => {
-    cancelAnimationFrame(raf)
-    if (state.gen !== gen) return // 已重新开始：这一次落地作废
-    state.rot = target
-    beep(320, 0.5, 0.09)
-    setTimeout(() => beep(196, 0.8, 0.08), 90)
-    land(idx, pick)
-  }, duration + 60)
-}
-
-function forceLand(idx: number): void {
-  land(idx, pickWeighted(distribution(idx).w))
-}
-
-function land(idx: number, pick: string | null): void {
-  const gen = state.gen
-  const st = STAGES[idx]
-  if (pick == null) {
-    // 本轮已无任何一个可能的选项：记「此轮不存」并前进
-    renderWheel(idx, null)
-    state.records.push({ stageId: st.id, value: null, skipped: true })
-    renderLedger()
-    renderStats()
-    renderBattle()
-    renderSteps()
-    const nx = nextActiveIndex(idx + 1, true)
-    if (nx === -1) {
-      setTimeout(() => {
-        if (state.gen !== gen) return
-        state.spinning = false
-        finish()
-      }, 600)
-      return
-    }
-    state.i = nx
-    setTimeout(() => {
-      if (state.gen !== gen) return
-      state.spinning = false
-      $<HTMLButtonElement>('#skipBtn').disabled = false
-      $<HTMLButtonElement>('#autoBtn').disabled = false
-      renderStage()
-    }, 260)
-    return
-  }
-  renderWheel(idx, pick)
-  document
-    .querySelectorAll<HTMLElement>('.opt')
-    .forEach((el) => el.classList.toggle('win', el.dataset.id === pick))
-  expandAfter(idx, st.id, pick)
-  state.results[st.id] = pick
-  if (st.id === 'duel2') state.results.duel = pick // 二番战的结果才是「最终决战结果」
-  state.records.push({ stageId: st.id, value: pick, skipped: false })
-  if (st.kind === 'atk') applyAction(st.id, pick)
-  // 注意：不在此处向前预扫「未来会被跳过的轮次」——前置条件未抽到时判定不可靠，
-  // 会造成「先记为跳过、之后又真抽一次」的重复记录。改由主循环抵达时统一处理。
-  const ni = nextActiveIndex(idx + 1, true) // 顺便把「此轮不存」的轮次补进命运帖
-  renderLedger()
-  renderStats()
-  renderBattle()
-  renderSteps()
-  if (ni === -1) {
-    setTimeout(() => {
-      if (state.gen !== gen) return
-      state.spinning = false
-      finish()
-    }, 700)
-    return
-  }
-  state.i = ni
-  const delay = state.auto ? 100 : st.kind === 'atk' ? 460 : 700
-  setTimeout(() => {
-    if (state.gen !== gen) return // 已重新开始：不再推进
-    state.spinning = false
-    $<HTMLButtonElement>('#skipBtn').disabled = false
-    $<HTMLButtonElement>('#autoBtn').disabled = false
-    renderStage()
-    if (state.auto)
-      setTimeout(() => {
-        if (state.gen === gen) doSpin(400)
-      }, 90)
-  }, delay)
-}
-
-function skipStage() {
-  if (state.spinning || state.done || state.i >= STAGES.length) return
-  state.spinning = true
-  $<HTMLButtonElement>('#spinBtn').disabled = true
-  $<HTMLButtonElement>('#skipBtn').disabled = true
-  $<HTMLButtonElement>('#autoBtn').disabled = true
-  forceLand(state.i)
-}
-
-function resolveBattle() {
-  if (state.spinning || state.done) return
-  let guard = 0
-  // 一趟走完整场战斗：回合数轮 + 逐回合出手 + 结算轮（事件战与终局战都适用）
-  while (state.i < STAGES.length && guard++ < 60) {
-    const st = STAGES[state.i]
-    if (st.kind === 'atk' || /^br\d$/.test(st.id) || /^ed\d$/.test(st.id)) {
-      forceLand(state.i)
-      continue
-    }
-    break
-  }
-  const id = state.i < STAGES.length ? STAGES[state.i].id : ''
-  if (id === 'duel' || id === 'duel2') doSpin(900)
-}
-
-/* =====================================================================
-   完成
-   ===================================================================== */
-function finish() {
-  if (state.done) return
-  state.done = true
-  state.auto = false
-  const c = state.results,
-    d = derived(),
-    sv = survivalRate()
-  renderStats()
-  renderBattle()
-  $('#surviveV').textContent =
-    sv.toFixed(0) + '% · ' + (sv >= 70 ? '高' : sv >= 45 ? '中' : sv >= 22 ? '低' : '绝望')
-  $('#surviveHint').textContent = '实际结局：' + labelOf(c.ending) + '。'
-  $('#mdOut').textContent = buildMarkdown(d, sv)
-  $<HTMLTextAreaElement>('#sysPrompt').value = SYSTEM_PROMPT
-  $('#deliver').hidden = false
-  $('#deliver').scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  $<HTMLButtonElement>('#spinBtn').disabled = true
-  $<HTMLButtonElement>('#spinBtn').textContent = '已 定 终 局'
-  $<HTMLButtonElement>('#skipBtn').disabled = true
-  $<HTMLButtonElement>('#autoBtn').disabled = true
-  $('#resolveBtn').hidden = true
-  $('#stageKicker').textContent = '此生已尽'
-  $('#stageName').textContent = '你的一生已经写完'
-  $('#stageDesc').textContent =
-    '向下取走 Markdown 档案，或接上你自己的 API，让 AI 把你的一生写成故事。'
-  $('#opts').innerHTML = ''
-  $('#interfBody').innerHTML = '<p class="empty-interf">因果已闭合。</p>'
-  renderSteps()
-}
-
-/* =====================================================================
-   Markdown
-   ===================================================================== */
-const SYSTEM_PROMPT = [
-  '你是精通《咒术回战》世界观的同人小说家。请严格遵循以下设定，不得擅自篡改：',
-  '1. 咒力源于人类的负面情感；咒灵由人的恐惧与憎恶凝聚而生，被祓除即消散。',
-  '2. 术式为先天刻印在肉体上的能力，无法后天习得；天与咒缚是以术式为代价换来超人肉体。',
-  '3. 领域展开＝以大量咒力具现化「生得领域」并附加必中效果；简易领域不附必中，但可抵消必中。',
-  '4. 反转术式＝负负得正产生「正的咒力」用于治愈；黑闪＝咒力与物理冲击在 0.000001 秒误差内的碰撞，命中后威力翻倍并可追击。',
-  '5. 咒物、受肉体、天元与其结界体系、死灭回游规则（结界内玩家、点数、以 100 点追加规则）不得违背。',
-  '5c. 两面宿傩的「原身形态」＝四只手、两张脸的真正肉体，可再次展开领域「伏魔御廚子」；若档案中出现二番战，请如实描写他撕开受肉躯壳的过程。',
-  '5b. 束缚＝以「给自己加锁」换取同等增幅，代价与收益必须同时成立；术式与领域请严格使用档案中给出的具体名称（如十种影法术、无量空处、伏魔御廚子、诛伏赐死），不要改名或替换。',
-  '6. 时间线严格对齐档案中的「入场时期」与「逐段经历」，不得让该时点的死者复活、不得提前发生未发生之事。',
-  '7. 禁止改写档案给出的结局、决战结果与战斗记录——你要写的是「这个人如何走到这个结局」。',
-  '7b. 立场必须前后一致：档案中的「决战阵营」与「逐段经历」里的站队结果不得互相矛盾（例如决战阵营为高专方，就不能写成他在新宿站在宿傩一侧）。',
-  '写作要求：中文；第二人称「你」；3000–5000 字；按「逐段经历」与「决战逐回合记录」分节并加小标题；战斗要逐回合写出双方出招；文风冷峻克制，偶有黑色幽默；不要输出设定说明或点评，只输出故事本身。',
-].join('\n')
-
-function buildMarkdown(d: DerivedLife, sv: number): string {
-  const c = state.results
-  const stageOf = stageById
-  const rows = (kind: Stage['kind']) =>
-    state.records
-      .filter((r) => stageOf(r.stageId).kind === kind)
-      .map((r) => {
-        const st = stageOf(r.stageId)
-        const val = r.skipped ? '——（此轮不存）' : labelOf(r.value)
-        const hint = r.skipped
-          ? st.skipText || ''
-          : r.value && BY[r.value]
-            ? BY[r.value].hint || ''
-            : ''
-        return { st, val, hint }
-      })
-  const coreRows = rows('core')
-    .map((r) => '| ' + r.st.name + ' | **' + r.val + '** | ' + r.hint + ' |')
-    .join('\n')
-  const dimTable = DIMS.map(
-    (dd) =>
-      '| ' +
-      dd.n +
-      ' | **' +
-      (c[dd.k] ? RNK(c, dd.k) : '—') +
-      '** | ' +
-      (c[dd.k] ? BY[c[dd.k]].hint || '' : '') +
-      ' |',
-  ).join('\n')
-  const evRows = rows('event')
-    .map((r) => '- **' + r.st.name + '**（' + (r.st.title || '') + '）：' + r.val + ' —— ' + r.hint)
-    .join('\n')
-  const absRows = rows('abs')
-    .map((r) => '- ' + r.st.name + '：**' + r.val + '**')
-    .join('\n')
-  const skillRows = rows('skill')
-    .map((r) => '- ' + r.st.name + '：**' + r.val + '**' + (r.hint ? ' —— ' + r.hint : ''))
-    .join('\n')
-  const gearRows = rows('gear')
-    .map((r) => '- ' + r.st.name + '：**' + r.val + '**')
-    .join('\n')
-  const vowRows = rows('vow')
-    .map((r) => '- ' + r.st.name + '：**' + r.val + '**' + (r.hint ? ' —— ' + r.hint : ''))
-    .join('\n')
-  const legacyRow = rows('legacy')
-    .map((r) => '- 后世评价：**' + r.val + '**')
-    .join('\n')
-  const oppId = oppOf(c)
-
-  const b = state.battle
-  const oppName = OPPONENT[oppId] || '对手'
-  const evNameOf = (id: string | null): string => {
-    const d = EVENT_DEFS.find((x) => x.id === id)
-    return d ? d.name : id || '未知事件'
-  }
-  /* ---- 战斗记录按「场次」分组：各场事件战 + 终局一番战 + 终局二番战 ---- */
-  interface BoutGroup {
-    key: string
-    isEv: boolean
-    logs: BattleLog[]
-  }
-  const boutGroups: BoutGroup[] = []
-  b.log.forEach((l) => {
-    const eventKey = l.bout && BOUT_EVENTS.indexOf(l.bout) >= 0 ? l.bout : null
-    const isEv = eventKey !== null
-    const key = eventKey || 'final' + ((l.phase || 1) === 2 ? '2' : '')
-    let g = boutGroups.find((x) => x.key === key)
-    if (!g) {
-      g = { key, isEv, logs: [] }
-      boutGroups.push(g)
-    }
-    g.logs.push(l)
-  })
-  const fmtBout = (g: BoutGroup): string => {
-    const byRound: Record<string, BattleLog[]> = {}
-    g.logs.forEach((l) => {
-      byRound[l.round] = byRound[l.round] || []
-      byRound[l.round].push(l)
-    })
-    const foeName = g.isEv
-      ? boutFoe(g.key, c).name
-      : g.key === 'final2'
-        ? oppName + '（原身形态）'
-        : oppName
-    const head = g.isEv
-      ? '**' + evNameOf(g.key) + '** · 对手：' + foeName + '\n'
-      : '**' + (g.key === 'final2' ? '二番战' : '一番战') + '** · 对手：' + foeName + '\n'
-    const body = Object.keys(byRound)
-      .sort((x, y) => Number(x) - Number(y))
-      .map((r) => {
-        const ps = byRound[r]
-          .filter((l) => l.side === 'p')
-          .map((l) => l.label + (l.extra ? '（追击）' : '') + ' +' + l.pw)
-          .join(' ／ ')
-        const es = byRound[r]
-          .filter((l) => l.side === 'e')
-          .map((l) => l.label + ' +' + l.pw)
-          .join(' ／ ')
-        return '- 第 ' + r + ' 回合：你【' + ps + '】 vs ' + foeName + '【' + es + '】'
-      })
-      .join('\n')
-    const sp = g.logs.filter((l) => l.side === 'p').reduce((a, l) => a + l.pw, 0)
-    const se = g.logs.filter((l) => l.side === 'e').reduce((a, l) => a + l.pw, 0)
-    const df = sp - se
-    return (
-      head +
-      body +
-      '\n- 本场累计：你 ' +
-      sp +
-      ' ／ ' +
-      foeName +
-      ' ' +
-      se +
-      '（差 ' +
-      (df > 0 ? '+' : '') +
-      df +
-      '）'
-    )
-  }
-  const evGroups = boutGroups
-    .filter((g) => g.isEv)
-    .sort((a, z) => BOUT_EVENTS.indexOf(a.key) - BOUT_EVENTS.indexOf(z.key))
-  const finGroups = boutGroups.filter((g) => !g.isEv).sort((a, z) => (a.key < z.key ? -1 : 1))
-  const battleLog = finGroups.length ? finGroups.map(fmtBout).join('\n\n') : '-（无终局战斗记录）'
-  /* 各场事件战：逐回合 + 结果 + 战后成长 + 失去 */
-  let boutRows = ''
-  BOUT_EVENTS.forEach((evId) => {
-    const n = evId.slice(2),
-      def = EVENT_DEFS.find((x) => x.id === evId)
-    const evVal = c[evId]
-    if (!def || !c['ed' + n]) return // 这一场没打
-    if (!evVal || String(evVal).slice(-4) === '_abs') return // 缺席
-    let g: BoutGroup | null = null
-    for (const x of evGroups) {
-      if (x.key === evId) {
-        g = x
-        break
-      }
-    }
-    let s = '### ' + def.name + '（' + def.title + '）\n\n'
-    if (g) s += fmtBout(g) + '\n'
-    else s += '- 对手：**' + boutFoe(evId, c).name + '**（简报模式：未逐回合演出）\n'
-    s += '- 结果：**' + (c['ed' + n] ? labelOf(c['ed' + n]) : '——') + '**\n'
-    if (c['gr' + n]) {
-      s += '- 战后：**' + labelOf(c['gr' + n]) + '**'
-      if (c['skillg' + n]) s += '（习得：' + labelOf(c['skillg' + n]) + '）'
-      if (c['ls' + n]) s += '　失去：**' + labelOf(c['ls' + n]) + '**'
-      s += '\n'
-    }
-    boutRows += s + '\n'
-  })
-  const opp = OPPONENT[oppId] || '你的命运本身'
-  const bondLine =
-    c.bond === 'b13'
-      ? '关键人物：**无。你孤身一人**，请写出这份孤独如何把人推向既定结局'
-      : '必须出现的关键人物：**' +
-        labelOf(c.bond) +
-        '**（决战对手：' +
-        opp +
-        ' —— ' +
-        (OPPONENT_NOTE[oppId] || '') +
-        '）'
-  const sk = chosenSkills(c)
-    .map((id) => BY[id] && BY[id].label)
-    .filter(Boolean)
-
-  return (
-    '# 咒术回战 · 抽选人生档案\n\n' +
-    '> 生成时间：' +
-    new Date().toLocaleString('zh-CN') +
-    '\n' +
-    '> 生成器版本：' +
-    VERSION +
-    '（' +
-    VERSION_DATE +
-    ' · ' +
-    VERSION_NOTE +
-    '）\n' +
-    '> 生成方式：因果转盘（前轮结果实时改写后轮几率，扇区面积即当下几率）\n\n' +
-    '## 一、此身为何\n\n| 轮次 | 结果 | 说明 |\n|---|---|---|\n' +
-    coreRows +
-    '\n\n' +
-    '## 二、六维性能（E–EX）\n\n| 维度 | 等级 | 注释 |\n|---|---|---|\n' +
-    dimTable +
-    '\n\n' +
-    '- 综合战力：**' +
-    power(c) +
-    ' / 100（' +
-    rankOfScore(power(c)) +
-    '）**\n\n' +
-    '## 三、技能 · 咒具 · 束缚\n\n' +
-    (skillRows || '-（一件也不会）') +
-    '\n\n' +
-    (gearRows ? '咒具：\n' + gearRows + '\n' : '') +
-    '\n' +
-    (vowRows ? '束缚：\n' + vowRows + '\n' : '') +
-    '\n' +
-    '## 四、逐段经历\n\n' +
-    (evRows || '-（入场于终战之后，此后再无大事）') +
-    '\n\n' +
-    (absRows ? '缺席原因：\n' + absRows + '\n' : '') +
-    '\n' +
-    (boutRows ? '## 五、各场战斗（逐场记录）\n\n' + boutRows + '\n' : '') +
-    '## 六、决战逐回合记录\n\n' +
-    (deadAt(c)
-      ? '- **未参与最终决战**：你在「' + evNameOf(deadAt(c)) + '」这一战中战死，没能活到那一天。\n'
-      : '- 对手：**' +
-        oppName +
-        '**\n- 交手回合数：**' +
-        labelOf(c.battleRounds) +
-        '**' +
-        (c.grade === 'g7' || c.grade === 'g8' ? '（SS / EX 自动追加一回合）' : '') +
-        (c.battleRounds2 ? '　二番战：**' + labelOf(c.battleRounds2) + '**' : '') +
-        '\n' +
-        battleLog +
-        '\n\n' +
-        (c.sukunaTrue ? '- 宿傩是否解放原身：**' + labelOf(c.sukunaTrue) + '**\n' : '') +
-        '- 决战结果：**' +
-        labelOf(c.duel) +
-        '** —— ' +
-        ((BY[c.duel] && BY[c.duel].hint) || '') +
-        '\n') +
-    '\n' +
-    '## 七、战后\n\n- ' +
-    (c.growth ? '**' + labelOf(c.growth) + '**' : '—') +
-    '\n' +
-    (c.loss ? '- 失去的东西：**' + labelOf(c.loss) + '**\n' : '') +
-    '\n' +
-    '## 八、结局\n\n- **' +
-    labelOf(c.ending) +
-    '** —— ' +
-    ((BY[c.ending] && BY[c.ending].hint) || '') +
-    '\n- 生还倾向：' +
-    sv.toFixed(0) +
-    '%\n\n' +
-    (legacyRow ? '## 九、身后名\n\n' + legacyRow + '\n\n' : '') +
-    '## 十、术式与领域（具体名称）\n\n- 生得术式：**' +
-    (c.technique ? labelOf(c.technique) : '无术式') +
-    '**' +
-    (c.techNature ? '（性质：' + labelOf(c.techNature) + '）' : '') +
-    '\n' +
-    '- 生得领域：**' +
-    (c.domain === 'd0' ? '未展开' : '「' + domLabel(c) + '」') +
-    '**' +
-    (c.domainForm ? '（形态：' + labelOf(c.domainForm) + '）' : '') +
-    (c.domainEffect ? '（效果：' + labelOf(c.domainEffect) + '）' : '') +
-    '\n' +
-    '- 称号：**' +
-    d.title +
-    '**\n\n' +
-    '## 十一、世界观锚点（写作时请严格遵守）\n\n' +
-    '- 2006：怀玉·玉折（星浆体护送事件）／0 卷（乙骨忧太与祈本里香，百鬼夜行前夜）\n' +
-    '- 2007.12.24：百鬼夜行，羂索在东京与京都放出上千只咒灵\n' +
-    '- 2018 年春：虎杖悠仁吞下宿傩手指，进入东京咒术高专\n' +
-    '- 2018.10.31：涩谷事变，五条悟被封印于狱门疆\n' +
-    '- 2018.11：死灭回游开始（羂索发动），结界内玩家以点数博弈，追加规则需 100 点\n' +
-    '- 2018.12.24：人外魔境新宿决战，五条悟与两面宿傩的最终对决\n' +
-    '- 2019：终战之后，残存者重建咒术界\n' +
-    '- 咒力＝负面情感的运用；咒灵＝恐惧的具现；术式＝先天刻印；领域展开＝具现化生得领域＋必中\n' +
-    '- 天与咒缚＝以术式换取肉体；反转术式＝负负得正；黑闪＝0.000001 秒误差的咒力碰撞\n' +
-    '- 简易领域＝0.5 秒展开、不附必中但可抵消必中；极之番＝术式的最大输出\n' +
-    '- 天元＝不死术式与日本结界的核心；受肉体＝千年咒术师的灵魂借尸苏醒\n\n' +
-    '## 十二、请为我写故事\n\n请以以上档案为主角设定，创作一篇《咒术回战》同人短篇：\n\n' +
-    '- 视点：第二人称「你」，从「' +
-    labelOf(c.era) +
-    '」入场，入场年龄 ' +
-    labelOf(c.age) +
-    '，性格' +
-    labelOf(c.personality) +
-    '，运气 ' +
-    labelOf(c.luck) +
-    '\n' +
-    '- 必须按「逐段经历」的顺序逐段推进，每段独立成节\n' +
-    (boutRows
-      ? '- 「各场战斗」里的每一场都要单独成节，按其中的逐回合记录写出双方出招（招式名请照抄），并写出该场之后的成长或失去\n'
-      : '') +
-    '- 决战一节必须严格按「决战逐回合记录」逐回合写出双方出招（招式名请照抄），落在：**' +
-    labelOf(c.duel) +
-    '**（对手：' +
-    opp +
-    '）' +
-    (c.sukunaTrue === 'su_yes'
-      ? '；宿傩会在一番战后解放「原身形态」（四臂、双面），二番战必须单独成节'
-      : '') +
-    '\n' +
-    '- 最终结局必须是：**' +
-    labelOf(c.ending) +
-    '**\n' +
-    '- ' +
-    bondLine +
-    '\n' +
-    '- 必须体现六维（' +
-    DIMS.map((dd) => dd.n + '：' + (c[dd.k] ? RNK(c, dd.k) : '—')).join('、') +
-    '）、术式（' +
-    (c.technique ? labelOf(c.technique) : '无') +
-    '）、领域（' +
-    (c.domain === 'd0' ? '未展开' : '「' + domLabel(c) + '」') +
-    '）、等级（' +
-    labelOf(c.grade) +
-    '）、阵营（' +
-    labelOf(c.faction) +
-    '）、技能（' +
-    (sk.join('、') || '无') +
-    '）\n' +
-    '- 立场必须前后一致：最终**' +
-    labelOf(c.battleSide) +
-    '**，所以「逐段经历」里的站队（尤其是新宿决战）必须与此一致，不得写成矛盾的两套立场\n' +
-    '- 篇幅 3000–5000 字，文风冷峻克制，不要输出设定说明，只写故事\n'
-  )
-}
-
-/* =====================================================================
-   交付
-   ===================================================================== */
-/* 复制：本地双击打开（file://）时 navigator.clipboard 常被浏览器拒绝，
-   必须回退到 execCommand；再不行就直接帮用户把文本选中，提示手动 ⌘/Ctrl+C。 */
-function copyText(t: string): Promise<boolean> {
-  const legacy = () =>
-    new Promise<boolean>((res, rej) => {
-      try {
-        const ta = document.createElement('textarea')
-        ta.value = t
-        ta.setAttribute('readonly', '')
-        ta.style.cssText =
-          'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;border:0;padding:0;'
-        document.body.appendChild(ta)
-        ta.focus()
-        ta.select()
-        ta.setSelectionRange(0, t.length)
-        const ok = document.execCommand('copy')
-        ta.remove()
-        if (ok) res(true)
-        else rej(new Error('execCommand 返回 false'))
-      } catch (e) {
-        rej(e)
-      }
-    })
-  // 被嵌在 iframe（预览面板）里时，clipboard-write 权限通常没授予，直接走经典路径更可靠
-  let inFrame: boolean
-  try {
-    inFrame = window.self !== window.top
-  } catch {
-    inFrame = true
-  }
-  if (!inFrame && navigator.clipboard && window.isSecureContext) {
-    return navigator.clipboard
-      .writeText(t)
-      .then(() => true)
-      .catch(() => legacy())
-  }
-  return legacy()
-}
-function selectNode(node: Node): boolean {
-  try {
-    const r = document.createRange()
-    r.selectNodeContents(node)
-    const s = window.getSelection()
-    if (!s) return false
-    s.removeAllRanges()
-    s.addRange(r)
-    return true
-  } catch {
-    return false
-  }
-}
-/* 统一入口：空内容 / 复制失败 都有明确反馈，不会出现「点了没反应」 */
-function copyFrom(btn: HTMLButtonElement, text: string | null, node: Node | null): void {
-  if (!text || !text.trim()) {
-    flash(btn, '还没有内容可复制')
-    return
-  }
-  copyText(text)
-    .then(() => flash(btn, '已复制 ✓'))
-    .catch(() => {
-      if (node && selectNode(node)) flash(btn, '已选中 · 请按 ⌘/Ctrl+C')
-      else flash(btn, '复制失败 · 请手动选中')
-    })
-}
-const flashTimers = new WeakMap<HTMLButtonElement, number>()
-function flash(btn: HTMLButtonElement, msg: string): void {
-  if (!btn) return
-  const o = btn.dataset.label || btn.textContent
-  btn.dataset.label = o
-  btn.textContent = msg
-  const previousTimer = flashTimers.get(btn)
-  if (previousTimer !== undefined) clearTimeout(previousTimer)
-  flashTimers.set(
-    btn,
-    window.setTimeout(() => (btn.textContent = o), 1600),
-  )
-}
-function download(name: string, text: string | null): void {
-  const b = new Blob([text || ''], { type: 'text/markdown;charset=utf-8' })
-  const u = URL.createObjectURL(b)
-  const a = document.createElement('a')
-  a.href = u
-  a.download = name
-  a.click()
-  URL.revokeObjectURL(u)
-}
-$('#copyMdBtn').onclick = (e) =>
-  copyFrom(e.currentTarget as HTMLButtonElement, $('#mdOut').textContent, $('#mdOut'))
-$('#copyPromptBtn').onclick = (e) =>
-  copyFrom(
-    e.currentTarget as HTMLButtonElement,
-    '【系统提示词】\n' +
-      $<HTMLTextAreaElement>('#sysPrompt').value +
-      '\n\n【用户消息】\n' +
-      $('#mdOut').textContent,
-    $('#mdOut'),
-  )
-$('#dlBtn').onclick = () => download('咒术回战·抽选人生.md', $('#mdOut').textContent)
-$('#copyStoryBtn').onclick = (e) =>
-  copyFrom(e.currentTarget as HTMLButtonElement, $('#story').textContent, $('#story'))
-$('#dlStoryBtn').onclick = () =>
-  download('咒术回战·此生的故事.md', '# ' + derived().title + '\n\n' + $('#story').textContent)
-
-interface ChatCompletionResponse {
-  choices?: Array<{ message?: { content?: string }; delta?: { content?: string } }>
-}
-$<HTMLButtonElement>('#genBtn').onclick = async (e) => {
-  const btn = e.currentTarget as HTMLButtonElement,
-    st = $('#apiStatus'),
-    out = $('#story')
-  const g = state.gen
-  const base = $<HTMLInputElement>('#apiBase').value.trim().replace(/\/+$/, '')
-  const key = $<HTMLInputElement>('#apiKey').value.trim()
-  const model = $<HTMLInputElement>('#apiModel').value.trim() || 'gpt-4o-mini'
-  const temp = parseFloat($<HTMLInputElement>('#apiTemp').value) || 0.9
-  const stream = $<HTMLInputElement>('#streamChk').checked
-  localStorage.setItem('jjkwheel', JSON.stringify({ base, model, key }))
-  if (!key) {
-    st.className = 'status err'
-    st.textContent = '请填 API Key。'
-    return
-  }
-  btn.disabled = true
-  btn.textContent = '咒力输送中…'
-  st.className = 'status'
-  st.textContent = '正在把一生交给模型…'
-  out.textContent = ''
-  if (state.ctrl) {
-    try {
-      state.ctrl.abort()
-    } catch {
-      // 过期请求或不完整数据可以安全忽略。
-    }
-  }
-  state.ctrl = new AbortController()
-  try {
-    const res = await fetch(base + '/chat/completions', {
-      method: 'POST',
-      signal: state.ctrl.signal,
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
-      body: JSON.stringify({
-        model,
-        temperature: temp,
-        stream,
-        messages: [
-          { role: 'system', content: $<HTMLTextAreaElement>('#sysPrompt').value },
-          { role: 'user', content: $('#mdOut').textContent },
-        ],
-      }),
-    })
-    if (!res.ok) {
-      const t = await res.text()
-      throw new Error('HTTP ' + res.status + ' — ' + t.slice(0, 300))
-    }
-    if (!stream) {
-      const j = (await res.json()) as ChatCompletionResponse
-      out.textContent =
-        j.choices && j.choices[0] && j.choices[0].message
-          ? (j.choices[0].message.content ?? '')
-          : JSON.stringify(j).slice(0, 2000)
-    } else {
-      if (!res.body) throw new Error('响应不含可读流')
-      const reader = res.body.getReader(),
-        dec = new TextDecoder()
-      let acc = ''
-      while (true) {
-        const r = await reader.read()
-        if (r.done) break
-        if (state.gen !== g) {
-          try {
-            reader.cancel()
-          } catch {
-            // 过期请求或不完整数据可以安全忽略。
-          }
-          return
-        } // 已重新开始：中断流式输出
-        for (const line of dec.decode(r.value, { stream: true }).split('\n')) {
-          if (line.indexOf('data:') !== 0) continue
-          const dd = line.slice(5).trim()
-          if (dd === '[DONE]') continue
-          try {
-            const j = JSON.parse(dd) as ChatCompletionResponse
-            const ch = j.choices && j.choices[0]
-            const t =
-              (ch && ch.delta && ch.delta.content) || (ch && ch.message && ch.message.content) || ''
-            if (t) {
-              acc += t
-              out.textContent = acc
-              out.scrollTop = out.scrollHeight
-            }
-          } catch {
-            // 过期请求或不完整数据可以安全忽略。
-          }
-        }
-      }
-    }
-    if (state.gen !== g) return
-    st.textContent = '完成。'
-  } catch (err) {
-    if (state.gen !== g || (err instanceof Error && err.name === 'AbortError')) return
-    st.className = 'status err'
-    const message = err instanceof Error ? err.message : String(err)
-    st.textContent =
-      '失败：' +
-      message +
-      '（若为空或 TypeError，多半是浏览器的 CORS 限制，请换跨域网关或本地代理）'
-  } finally {
-    if (state.gen === g) {
-      btn.disabled = false
-      btn.textContent = '生成此生的故事'
-      state.ctrl = null
-    }
-  }
-}
-
-/* =====================================================================
-   控制
-   ===================================================================== */
-const slowMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
-const spinNow = () => doSpin(slowMotion() ? 600 : 4200)
-$<HTMLButtonElement>('#spinBtn').onclick = spinNow
-$('#hubGroup').onclick = spinNow
-$('#hubGroup').onkeydown = (e) => {
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault()
-    spinNow()
-  }
-}
-$<HTMLButtonElement>('#skipBtn').onclick = () => {
-  state.auto = false
-  skipStage()
-}
-$<HTMLButtonElement>('#autoBtn').onclick = () => {
-  state.auto = true
-  doSpin(520)
-}
-$('#resolveBtn').onclick = resolveBattle
-$<HTMLInputElement>('#quickBoutChk').onchange = (e) => {
-  state.quickBout = (e.currentTarget as HTMLInputElement).checked
-}
-
-/* =====================================================================
-   重新开始：一键把转盘恢复到初始状态
-   ===================================================================== */
-function restart() {
-  state.gen++ // 作废所有在途的旋转 / 落地 / 自动连抽 / 流式输出
-  if (state.raf) {
-    cancelAnimationFrame(state.raf)
-    state.raf = 0
-  }
-  if (state.ctrl) {
-    try {
-      state.ctrl.abort()
-    } catch {
-      // 过期请求或不完整数据可以安全忽略。
-    }
-    state.ctrl = null
-  }
-
-  state.i = 0
-  state.results = {}
-  state.records = []
-  state.auto = false
-  state.spinning = false
-  state.done = false
-  state.rot = 0
-  state.battle = {
-    p: 0,
-    e: 0,
-    diff: 0,
-    ce: 3,
-    domainUsed: false,
-    rounds: 0,
-    log: [],
-    extraCount: 0,
-    phase: 1,
-    prisonUsed: false,
-    bout: '',
-    foe: null,
-  }
-  state.jutsuName = ''
-  state.domainName = ''
-  resetFlow()
-
-  const wheelEl = $('#wheel')
-  wheelEl.style.setProperty('--dur', '0ms')
-  wheelEl.style.transform = 'rotate(0deg)'
-
-  $('#deliver').hidden = true
-  $('#battleBox').hidden = true
-  $('#mdOut').textContent = ''
-  $('#story').textContent = ''
-  $('#apiStatus').textContent = ''
-  $('#apiStatus').className = 'status'
-  $('#surviveV').textContent = '—'
-  $('#surviveHint').textContent = '六维抽毕后显示综合战力；终局轮开启后显示生还率。'
-  $('#nameChips').innerHTML = ''
-  $('#skillChips').innerHTML = ''
-  $('#resolveBtn').hidden = true
-  $<HTMLButtonElement>('#spinBtn').disabled = false
-  $<HTMLButtonElement>('#spinBtn').textContent = '转 动'
-  $<HTMLButtonElement>('#skipBtn').disabled = false
-  $<HTMLButtonElement>('#autoBtn').disabled = false
-  const gb = $<HTMLButtonElement>('#genBtn')
-  if (gb) {
-    gb.disabled = false
-    gb.textContent = '生成此生的故事'
-  }
-
-  renderLedger()
-  renderStats()
-  renderBattle()
-  renderSteps()
-  renderStage()
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-}
-$('#resetBtn').onclick = restart
-$('#restartBtn').onclick = restart
-$('#restartBtn2').onclick = restart
-$('#soundBtn').onclick = (e) => {
-  state.sound = !state.sound
-  const button = e.currentTarget as HTMLButtonElement
-  button.textContent = '音效：' + (state.sound ? '开' : '关')
-  button.setAttribute('aria-pressed', String(state.sound))
-  if (state.sound) beep(880, 0.16, 0.06)
-}
-$('#themeBtn').onclick = (e) => {
-  const dark = document.documentElement.dataset.theme === 'dark'
-  document.documentElement.dataset.theme = dark ? 'light' : 'dark'
-  ;(e.currentTarget as HTMLButtonElement).textContent = '夜行性：' + (dark ? '关' : '开')
-}
-
-try {
-  const config: unknown = JSON.parse(localStorage.getItem('jjkwheel') || '{}')
-  if (config && typeof config === 'object') {
-    const values = config as Record<string, unknown>
-    if (typeof values.base === 'string') $<HTMLInputElement>('#apiBase').value = values.base
-    if (typeof values.model === 'string') $<HTMLInputElement>('#apiModel').value = values.model
-    if (typeof values.key === 'string') $<HTMLInputElement>('#apiKey').value = values.key
-  }
-} catch {
-  // 损坏的本地配置不影响应用初始化。
-}
-
-$<HTMLTextAreaElement>('#sysPrompt').value = SYSTEM_PROMPT
-document.querySelectorAll<HTMLElement>('.ver').forEach((el) => {
-  el.textContent = VERSION
-  el.title = '版本 ' + VERSION + '（' + VERSION_DATE + '）· ' + VERSION_NOTE
-})
-resetFlow()
-renderLedger()
-renderStats()
-renderBattle()
-renderStage()

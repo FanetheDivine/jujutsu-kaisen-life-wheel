@@ -1,0 +1,40 @@
+.markdown,
+.story {
+  max-height: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--ink-soft);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 16px;
+}
+.story {
+  min-height: 220px;
+  max-height: 520px;
+  font-size: 14px;
+  color: var(--ink);
+}
+.story:empty::before {
+  content: '尚未生成。你的每一次转动，都是这个故事无法改写的伏笔。';
+  color: var(--ink-faint);
+}
+.markdown::-webkit-scrollbar,
+.story::-webkit-scrollbar {
+  width: 8px;
+}
+.markdown::-webkit-scrollbar-thumb,
+.story::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .markdown,
+  .story {
+    scroll-behavior: auto;
+  }
+}

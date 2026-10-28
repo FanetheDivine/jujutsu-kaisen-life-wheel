@@ -1,0 +1,79 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-vermillion: var(--vermillion);
+  --color-indigo: var(--indigo);
+  --color-gold: var(--gold);
+  --color-sector-a: var(--sector-a);
+  --color-sector-b: var(--sector-b);
+  --color-sector-line: var(--sector-line);
+  --color-hl: var(--hl);
+  --color-hl-text: var(--hl-text);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --shadow-card: var(--shadow);
+  --ease-out-quart: var(--ease-out-quart);
+  --breakpoint-mid: 980px;
+}
+
+:root {
+  --font-display: 'Songti SC', 'Noto Serif SC', 'Source Han Serif SC', 'STSong', serif;
+  --font-body:
+    'PingFang SC', 'Noto Sans SC', 'Hiragino Sans GB', system-ui, -apple-system, sans-serif;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 18px;
+}
+
+html[data-theme='light'] {
+  --paper: #f3ede1;
+  --paper-2: #e9e1d0;
+  --surface: #fbf7ee;
+  --ink: #1b1720;
+  --ink-soft: #5b5464;
+  --ink-faint: #8a8290;
+  --line: #d6ccb8;
+  --vermillion: #b3341f;
+  --indigo: #2e4a7d;
+  --gold: #a8842c;
+  --sector-a: #ded4be;
+  --sector-b: #c6b99c;
+  --sector-line: #b0a181;
+  --hl: #a22c18;
+  --hl-text: #fff6ea;
+  --grid: rgba(46, 74, 125, 0.1);
+  --shadow: 0 1px 0 rgba(27, 23, 32, 0.05), 0 12px 30px -18px rgba(27, 23, 32, 0.35);
+}
+
+html[data-theme='dark'] {
+  --paper: #141018;
+  --paper-2: #1c1622;
+  --surface: #211a29;
+  --ink: #f0e9f5;
+  --ink-soft: #b8adcb;
+  --ink-faint: #8478a0;
+  --line: #3a2f49;
+  --vermillion: #e0573f;
+  --indigo: #7fa6e8;
+  --gold: #d8ae58;
+  --sector-a: #2e2539;
+  --sector-b: #211a29;
+  --sector-line: #4a3b5c;
+  --hl: #b8361f;
+  --hl-text: #fff2e8;
+  --grid: rgba(127, 166, 232, 0.07);
+  --shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 18px 40px -22px #000;
+}
