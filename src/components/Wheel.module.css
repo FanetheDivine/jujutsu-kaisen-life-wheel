@@ -47,6 +47,7 @@
   cursor: pointer;
   transform-origin: 200px 200px;
   animation: breathe 3.4s ease-in-out infinite;
+  -webkit-tap-highlight-color: transparent;
 }
 .hubGroup:hover .hub {
   fill: var(--vermillion);
@@ -56,11 +57,9 @@
 .hubGroup:hover .hubSub {
   fill: #fff4e8;
 }
-.hubGroup:focus-visible {
+/* 点击也会聚焦 SVG 分组，Chrome 会画出包住整组的矩形焦点框，故一律不显示 */
+.hubGroup:focus {
   outline: none;
-}
-.hubGroup:focus-visible .hub {
-  stroke-width: 3.5;
 }
 @keyframes breathe {
   0%,
