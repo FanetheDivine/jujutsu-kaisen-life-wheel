@@ -12,6 +12,7 @@ export interface GameStore extends AppState {
   apiStatus: string
   apiError: boolean
   generating: boolean
+  mobilePanel: 'draw' | 'ledger' | 'stats'
   systemPrompt: string
 }
 
@@ -55,6 +56,7 @@ export function createInitialGameState(): GameStore {
     apiStatus: '',
     apiError: false,
     generating: false,
+    mobilePanel: 'draw',
     systemPrompt: '',
   }
 }

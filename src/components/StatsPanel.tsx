@@ -53,7 +53,6 @@ export function StatsPanel() {
     <Card
       title="咒力检定"
       note={combatPower ? `综合战力 ${combatPower} · ${rankOfScore(combatPower)}` : '综合战力 —'}
-      className="mt-[clamp(14px,2vw,20px)]"
     >
       <div className="mb-3.5 flex flex-wrap gap-2">
         {results.era ? (

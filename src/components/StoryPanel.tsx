@@ -18,7 +18,7 @@ export function StoryPanel() {
     <>
       <hr className="my-5 border-0 border-t border-solid border-line" />
       <h3 className="mb-2.5 font-display text-[17px]">此生的故事</h3>
-      <pre ref={output} className={styles.story}>
+      <pre ref={output} className={styles.story} tabIndex={0} aria-label="此生的故事">
         {story}
       </pre>
       <div className="mt-3 flex flex-wrap gap-2.5">

@@ -1,7 +1,10 @@
 .markdown,
 .story {
-  max-height: 360px;
+  max-height: min(360px, 60dvh);
   overflow: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
   word-break: break-word;
   font-family: var(--font-body);
@@ -14,8 +17,8 @@
   padding: 16px;
 }
 .story {
-  min-height: 220px;
-  max-height: 520px;
+  min-height: min(220px, 40dvh);
+  max-height: min(520px, 65dvh);
   font-size: 14px;
   color: var(--ink);
 }

@@ -20,7 +20,7 @@ export function BattleBox() {
 
   return (
     <div className="mt-3.5 rounded-sm border border-vermillion bg-[color-mix(in_oklab,var(--vermillion)_5%,transparent)] px-3.5 py-3">
-      <div className="mb-2 flex justify-between gap-2.5 text-[11px] tracking-[0.12em] text-ink-faint">
+      <div className="mb-2 flex flex-wrap justify-between gap-x-2.5 gap-y-1 text-[11px] tracking-[0.12em] text-ink-faint">
         <span>
           对手：
           <b className="font-display text-[12.5px] tracking-[0.04em] text-vermillion">
