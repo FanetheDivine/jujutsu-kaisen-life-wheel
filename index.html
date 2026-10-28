@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>咒术回战 · 抽选人生转盘</title>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="brand">
+          <div class="seal">呪</div>
+          <div>
+            <h1>咒术回战 · 抽选人生</h1>
+            <p class="tagline">
+              数十轮因果 · 前轮定后轮 · 一命到底<span
+                class="ver badge"
+                title="生成器版本（更新：2026-10-15）"
+              ></span>
+            </p>
+          </div>
+        </div>
+        <div class="controls">
+          <button class="btn sm" id="soundBtn" aria-pressed="false">音效：关</button>
+          <button class="btn sm" id="themeBtn">夜行性：关</button>
+          <button class="btn sm ghost" id="resetBtn">重抽一生</button>
+        </div>
+      </header>
+
+      <div class="grid">
+        <section>
+          <div class="card">
+            <div class="steps" id="steps"></div>
+            <div class="stage-track"><i id="trackFill"></i></div>
+
+            <div class="wheel-stage">
+              <div class="wheel-wrap">
+                <svg viewBox="0 0 400 400" aria-hidden="true">
+                  <defs>
+                    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stop-color="var(--vermillion)" stop-opacity=".16" />
+                      <stop offset="70%" stop-color="var(--vermillion)" stop-opacity="0" />
+                    </radialGradient>
+                  </defs>
+                  <circle cx="200" cy="200" r="196" fill="url(#glow)" />
+                  <circle class="ring" cx="200" cy="200" r="186" />
+                  <circle class="ring-2" cx="200" cy="200" r="178" />
+                  <g id="wheel"></g>
+                  <path
+                    class="pointer"
+                    d="M200 6 L214 -14 L186 -14 Z"
+                    transform="translate(0,26)"
+                  />
+                  <g
+                    id="hubGroup"
+                    class="hub-group"
+                    role="button"
+                    tabindex="0"
+                    aria-label="转动转盘"
+                  >
+                    <circle class="hub" cx="200" cy="200" r="42" />
+                    <text class="hub-text" x="200" y="207">呪</text>
+                    <text class="hub-sub" x="200" y="226" id="hubSub">ROUND 01</text>
+                  </g>
+                </svg>
+              </div>
+            </div>
+            <p class="wheel-tip">点中央的「呪」即可转动 —— 扇区面积就是当下的真实几率</p>
+
+            <div class="stage-meta">
+              <div class="stage-kicker" id="stageKicker">ROUND 01</div>
+              <h2 class="stage-name" id="stageName">入场时期</h2>
+              <p class="stage-desc" id="stageDesc"></p>
+            </div>
+
+            <ul class="opts" id="opts"></ul>
+
+            <div class="interf" id="interfBox">
+              <h4>前轮因果干涉</h4>
+              <div id="interfBody"></div>
+            </div>
+
+            <div class="actions">
+              <button class="btn primary" id="spinBtn">转 动</button>
+              <button class="btn ghost" id="skipBtn">跳过此轮</button>
+              <button class="btn ghost sm" id="autoBtn">一键抽完余生</button>
+              <button class="btn ghost sm" id="resolveBtn" hidden>跳过战斗演出 · 直接结算</button>
+              <button class="btn ghost sm" id="restartBtn">重新开始</button>
+            </div>
+            <p class="hintline">
+              每一段经历（百鬼夜行 / 少年院 / 涩谷事变 / 死灭回游 /
+              新宿决战）只要你在场就会开战，敌人按你的立场与强度自动匹配。
+              <label class="toggle-row" style="display: inline-flex; margin-left: 6px"
+                ><input type="checkbox" id="quickBoutChk" />
+                <span style="font-size: 12px">事件战只出结算</span></label
+              >
+            </p>
+            <p class="hintline">
+              「重新开始」会清空这一生的全部结果，转盘立刻回到第一轮的初始状态。
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h3 class="card-title">咒力检定</h3>
+              <span class="card-note" id="powerNote">综合战力 —</span>
+            </div>
+            <div class="titles" id="nameChips"></div>
+            <div class="bars" id="bars"></div>
+            <div class="titles" id="skillChips" style="margin: 12px 0 0"></div>
+            <div class="battle" id="battleBox" hidden>
+              <div class="battle-head">
+                <span>对手：<b id="battleOpp">—</b></span
+                ><span id="battleRound">—</span>
+              </div>
+              <div class="battle-row p">
+                <span>你</span><span class="bt"><i class="bf" id="bfP"></i></span
+                ><span class="bn" id="bnP">0</span>
+              </div>
+              <div class="battle-row e">
+                <span id="battleEnemyName">敌</span
+                ><span class="bt"><i class="bf" id="bfE"></i></span
+                ><span class="bn" id="bnE">0</span>
+              </div>
+            </div>
+            <div class="verdict">
+              <div class="k">生还倾向</div>
+              <div class="v" id="surviveV">—</div>
+              <p class="hintline" id="surviveHint">
+                六维抽毕后显示综合战力；终局轮开启后显示生还率。
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div class="card">
+            <div class="card-head">
+              <h3 class="card-title">命运帖</h3>
+              <span class="card-note" id="ledgerNote">0 轮</span>
+            </div>
+            <div class="ledger" id="ledger">
+              <div class="empty-state">
+                <span class="big">呪</span
+                >尚未入场。<br />转动第一轮的瞬间，你的一生便开始被咒力书写。
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="deliver" id="deliver" hidden>
+        <div class="deliver-grid">
+          <div class="card">
+            <div class="card-head">
+              <h3 class="card-title">Markdown 档案</h3>
+              <span class="card-note">交给任意 AI 即可续写</span>
+            </div>
+            <pre class="md" id="mdOut"></pre>
+            <div class="actions" style="justify-content: flex-start">
+              <button class="btn" id="copyMdBtn">复制档案</button>
+              <button class="btn" id="copyPromptBtn">复制 系统提示词+档案</button>
+              <button class="btn" id="dlBtn">下载 .md</button>
+            </div>
+            <p class="hintline">
+              档案含「六维·E–EX
+              分级」「技能与咒具」「逐段经历」「缺席原因」「决战逐回合记录」与「世界观锚点」。AI
+              不会跑偏设定，也不会擅自改写你的结局。
+            </p>
+            <p class="hintline">
+              若「复制」在你的浏览器里没有反应（本地双击打开时较常见），按钮会改为替你<b>选中全文</b>，按
+              ⌘/Ctrl+C 即可；或者直接用「下载 .md」。
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h3 class="card-title">接你自己的 API</h3>
+              <span class="card-note">OpenAI 兼容 /chat/completions</span>
+            </div>
+            <label class="field"
+              ><span>BASE URL</span
+              ><input type="text" id="apiBase" value="https://api.openai.com/v1" spellcheck="false"
+            /></label>
+            <div class="row2">
+              <label class="field"
+                ><span>MODEL</span
+                ><input type="text" id="apiModel" value="gpt-4o-mini" spellcheck="false"
+              /></label>
+              <label class="field"
+                ><span>TEMPERATURE</span
+                ><input type="text" id="apiTemp" value="0.9" spellcheck="false"
+              /></label>
+            </div>
+            <label class="field"
+              ><span>API KEY（仅存本机 localStorage）</span
+              ><input type="password" id="apiKey" placeholder="sk-..." spellcheck="false"
+            /></label>
+            <label class="field"
+              ><span>系统提示词（可改）</span
+              ><textarea id="sysPrompt" spellcheck="false"></textarea>
+            </label>
+            <div class="actions" style="justify-content: flex-start">
+              <button class="btn primary" id="genBtn">生成此生的故事</button>
+              <label class="toggle-row"
+                ><input type="checkbox" id="streamChk" checked /> 流式输出</label
+              >
+            </div>
+            <div class="status" id="apiStatus"></div>
+            <hr class="sep" />
+            <div class="story" id="story"></div>
+            <div class="actions" style="justify-content: flex-start">
+              <button class="btn sm" id="copyStoryBtn">复制故事</button>
+              <button class="btn sm" id="dlStoryBtn">下载 .md</button>
+            </div>
+            <p class="hintline">
+              若浏览器报
+              CORS：多数模型厂商不允许网页直连，请填你自己的中转网关地址，或在本地起一层代理。密钥不会离开你的浏览器。
+            </p>
+          </div>
+        </div>
+        <div class="actions" style="justify-content: center">
+          <button class="btn primary" id="restartBtn2">重新开始 · 再抽一次人生</button>
+        </div>
+      </div>
+
+      <p class="footnote">
+        本作为《咒术回战》二次创作的同人向玩具 · 版权归原作者芥见下下及集英社所有 · 生成结果仅供娱乐
+      </p>
+      <p class="footnote"><span class="ver"></span> · 单文件网页 · 零依赖 · 离线可用</p>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
