@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { restart } from '../game/actions'
+import { beep } from '../game/audio'
 import { VERSION, VERSION_DATE } from '../game/version'
 import { gameStore } from '../store/gameStore'
 import { useGameStore } from '../store/useGameStore'
@@ -8,6 +9,12 @@ import { Button } from './ui/Button'
 export function Header() {
   const sound = useGameStore((state) => state.sound)
   const [dark, setDark] = useState(() => document.documentElement.dataset.theme === 'dark')
+
+  const toggleSound = (): void => {
+    const next = !sound
+    gameStore.setState({ sound: next })
+    if (next) beep(880, 0.16, 0.06)
+  }
 
   const toggleTheme = (): void => {
     const next = !dark
@@ -23,7 +30,7 @@ export function Header() {
         </div>
         <div>
           <h1 className="font-display text-[clamp(22px,3.2vw,32px)] leading-[1.15] font-semibold tracking-[0.06em]">
-            咒术回战 · 人生转盘
+            咒术回战 · 抽选人生
           </h1>
           <p className="mt-0.5 text-[12.5px] tracking-[0.2em] text-ink-soft">
             数十轮因果 · 前轮定后轮 · 一命到底
@@ -37,11 +44,7 @@ export function Header() {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Button
-          size="sm"
-          aria-pressed={sound}
-          onClick={() => gameStore.setState({ sound: !sound })}
-        >
+        <Button size="sm" aria-pressed={sound} onClick={toggleSound}>
           音效：{sound ? '开' : '关'}
         </Button>
         <Button size="sm" onClick={toggleTheme}>
