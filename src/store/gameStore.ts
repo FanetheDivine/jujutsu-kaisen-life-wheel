@@ -1,5 +1,6 @@
 import { createStore } from 'zustand/vanilla'
 import type { AppState, Stage } from '../game/types'
+import type { ScrollFollowState } from '../lib/scrollFollow'
 
 export interface GameStore extends AppState {
   stages: Stage[]
@@ -12,6 +13,9 @@ export interface GameStore extends AppState {
   apiStatus: string
   apiError: boolean
   generating: boolean
+  mobilePanel: 'draw' | 'ledger' | 'stats'
+  ledgerScroll: ScrollFollowState
+  storyScroll: ScrollFollowState
   systemPrompt: string
 }
 
@@ -55,6 +59,9 @@ export function createInitialGameState(): GameStore {
     apiStatus: '',
     apiError: false,
     generating: false,
+    mobilePanel: 'draw',
+    ledgerScroll: { following: true, seenCount: 0 },
+    storyScroll: { following: true, seenCount: 0 },
     systemPrompt: '',
   }
 }

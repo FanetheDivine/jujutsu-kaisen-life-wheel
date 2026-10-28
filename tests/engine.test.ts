@@ -19,6 +19,43 @@ function resetEngine(): void {
 beforeEach(resetEngine)
 
 describe('应用生命周期', () => {
+  it('手机面板切换不影响当前人生和正在进行的抽选', () => {
+    const records = [{ stageId: 'era', value: 'e4', skipped: false }]
+    const results = { era: 'e4' }
+    gameStore.setState({ records, results, spinning: true, auto: true, i: 1 })
+
+    gameStore.setState({ mobilePanel: 'ledger' })
+    gameStore.setState({ mobilePanel: 'stats' })
+
+    expect(gameStore.getState()).toMatchObject({
+      mobilePanel: 'stats',
+      spinning: true,
+      auto: true,
+      i: 1,
+    })
+    expect(gameStore.getState().records).toBe(records)
+    expect(gameStore.getState().results).toBe(results)
+  })
+
+  it('重开恢复手机抽选面板并清空上一人生', () => {
+    gameStore.setState({
+      mobilePanel: 'ledger',
+      ledgerScroll: { following: false, seenCount: 1 },
+      storyScroll: { following: false, seenCount: 100 },
+      records: [{ stageId: 'era', value: 'e4', skipped: false }],
+    })
+    vi.stubGlobal('window', { scrollTo: vi.fn() })
+    try {
+      restart()
+      expect(gameStore.getState().mobilePanel).toBe('draw')
+      expect(gameStore.getState().records).toEqual([])
+      expect(gameStore.getState().ledgerScroll).toEqual({ following: true, seenCount: 0 })
+      expect(gameStore.getState().storyScroll).toEqual({ following: true, seenCount: 0 })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('重开一次发布完整基础流程，不产生空轮次中间状态', () => {
     const observedLengths: number[] = []
     const unsubscribe = gameStore.subscribe((state) => {

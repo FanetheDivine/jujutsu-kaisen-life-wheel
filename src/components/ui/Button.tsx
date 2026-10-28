@@ -3,7 +3,7 @@ import type { ButtonHTMLAttributes } from 'react'
 import { cn } from '../../lib/cn'
 
 const buttonVariants = cva(
-  'cursor-pointer rounded-sm border px-3.5 py-2 font-body text-[13px] tracking-[0.04em] transition duration-200 ease-out-quart hover:border-vermillion hover:text-vermillion active:translate-y-px disabled:cursor-not-allowed disabled:opacity-[0.38] disabled:transform-none',
+  'min-h-11 cursor-pointer rounded-sm border px-3.5 py-2 mid:min-h-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vermillion font-body text-[13px] tracking-[0.04em] transition duration-200 ease-out-quart hover:border-vermillion hover:text-vermillion active:translate-y-px disabled:cursor-not-allowed disabled:opacity-[0.38] disabled:transform-none',
   {
     variants: {
       variant: {

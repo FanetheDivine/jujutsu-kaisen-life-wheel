@@ -24,12 +24,12 @@ export function Header() {
 
   return (
     <header className="mb-[clamp(18px,3vw,30px)] flex flex-wrap items-end justify-between gap-5">
-      <div className="flex items-center gap-3.5">
+      <div className="flex min-w-0 items-center gap-2.5 sm:gap-3.5">
         <div className="grid size-[46px] flex-none place-items-center rounded-sm bg-vermillion font-display text-[26px] leading-none text-[#fff3e6] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]">
           呪
         </div>
         <div>
-          <h1 className="font-display text-[clamp(22px,3.2vw,32px)] leading-[1.15] font-semibold tracking-[0.06em]">
+          <h1 className="font-display text-[clamp(20px,3.2vw,32px)] leading-[1.25] font-semibold tracking-[0.02em] sm:tracking-[0.06em]">
             咒术回战 · 抽选人生
           </h1>
           <p className="mt-0.5 text-[12.5px] tracking-[0.2em] text-ink-soft">

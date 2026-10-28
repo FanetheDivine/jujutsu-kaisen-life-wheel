@@ -10,13 +10,13 @@ export function Card({ title, note, className, children, ...props }: CardProps) 
   return (
     <div
       className={cn(
-        'rounded-lg border border-line bg-surface p-[clamp(16px,2.2vw,24px)] shadow-card',
+        'min-w-0 rounded-lg border border-line bg-surface p-[clamp(12px,2.2vw,24px)] shadow-card',
         className,
       )}
       {...props}
     >
       {title ? (
-        <div className="mb-3.5 flex items-baseline justify-between gap-3">
+        <div className="mb-3.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <h3 className="flex items-center gap-2 font-display text-[15px] tracking-[0.18em] before:size-[5px] before:rotate-45 before:bg-vermillion before:content-['']">
             {title}
           </h3>

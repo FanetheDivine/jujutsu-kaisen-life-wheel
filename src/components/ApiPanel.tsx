@@ -13,7 +13,7 @@ interface SavedConfig {
 }
 
 const inputClass =
-  'w-full rounded-r-sm border border-line bg-paper px-2.5 py-2 font-body text-[13px] text-ink outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-ink-faint focus:border-vermillion focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--vermillion)_12%,transparent)]'
+  'min-h-11 w-full min-w-0 rounded-r-sm border border-line bg-paper px-2.5 py-2 font-body text-base text-ink mid:min-h-0 mid:text-[13px] outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-ink-faint focus:border-vermillion focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--vermillion)_12%,transparent)]'
 
 function loadConfig(): SavedConfig {
   const fallback = { base: 'https://api.openai.com/v1', model: 'gpt-4o-mini', key: '' }
