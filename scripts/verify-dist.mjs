@@ -75,18 +75,43 @@ function verifyManifest(distDir, errors) {
 }
 
 function normalizePrecacheUrl(rawUrl, errors) {
+  let decodedPathname
+  try {
+    decodedPathname = rawUrl
+      .split(/[?#]/, 1)[0]
+      .split('/')
+      .map((segment) => decodeURIComponent(segment))
+      .join('/')
+  } catch {
+    errors.push(`预缓存 URL 必须是同源相对路径：${rawUrl}`)
+    return null
+  }
+
+  const hasUnsafeCharacters =
+    /\s/.test(rawUrl) ||
+    rawUrl.includes('\\') ||
+    [...rawUrl].some((character) => {
+      const code = character.charCodeAt(0)
+      return code <= 0x20 || code === 0x7f
+    })
   if (
     !rawUrl ||
+    hasUnsafeCharacters ||
     rawUrl.startsWith('/') ||
-    rawUrl.includes('\\') ||
     /^[a-z][a-z\d+.-]*:/i.test(rawUrl) ||
-    rawUrl.split(/[?#]/, 1)[0].split('/').includes('..')
+    decodedPathname.split('/').includes('..')
   ) {
     errors.push(`预缓存 URL 必须是同源相对路径：${rawUrl}`)
     return null
   }
-  const url = new URL(rawUrl, 'https://precache.invalid/')
-  return `${url.pathname.slice(1)}${url.search}`
+
+  const base = 'https://precache.invalid/'
+  const url = new URL(rawUrl, base)
+  if (url.origin !== new URL(base).origin) {
+    errors.push(`预缓存 URL 必须是同源相对路径：${rawUrl}`)
+    return null
+  }
+  return { url: `${url.pathname.slice(1)}${url.search}`, filePath: url.pathname.slice(1) }
 }
 
 function verifyServiceWorker(distDir, errors) {
@@ -126,14 +151,14 @@ function verifyServiceWorker(distDir, errors) {
       errors.push('预缓存条目缺少 url')
       continue
     }
-    const normalized = normalizePrecacheUrl(entry.url, errors)
-    if (!normalized) continue
-    if (seen.has(normalized)) errors.push(`预缓存 URL 重复：${normalized}`)
-    seen.add(normalized)
+    const target = normalizePrecacheUrl(entry.url, errors)
+    if (!target) continue
+    if (seen.has(target.url)) errors.push(`预缓存 URL 重复：${target.url}`)
+    seen.add(target.url)
 
-    const filePath = path.join(distDir, normalized)
+    const filePath = path.join(distDir, target.filePath)
     if (!existsSync(filePath) || !statSync(filePath).isFile()) {
-      errors.push(`预缓存文件不存在：${normalized}`)
+      errors.push(`预缓存文件不存在：${target.url}`)
     }
   }
 
@@ -152,12 +177,24 @@ function verifyLegacyRedirect(distDir, errors) {
   const source = readRequired(distDir, 'jujutsu-life-wheel.html', errors)
   if (!source) return
   const html = source.toString('utf8')
+
+  const metaRedirect = (html.match(/<meta\b[^>]*>/gi) ?? []).some((tag) => {
+    if (!/\bhttp-equiv\s*=\s*(["'])refresh\1/i.test(tag)) return false
+    const content = tag.match(/\bcontent\s*=\s*(["'])(.*?)\1/i)?.[2]
+    return content !== undefined && /^\s*\d+\s*;\s*url\s*=\s*(["']?)\.\/\1\s*$/i.test(content)
+  })
+  const directScriptRedirect = /window\.location\.replace\s*\(\s*(["'])\.\/\1\s*\)/.test(html)
+  const target = html.match(
+    /\b(?:const|let|var)\s+([a-zA-Z_$][\w$]*)\s*=\s*new\s+URL\(\s*(["'])\.\/\2\s*,\s*window\.location\.href\s*\)/,
+  )
+  const replaceTarget = html.match(/window\.location\.replace\s*\(\s*([a-zA-Z_$][\w$]*)\.href\s*\)/)
+  const scriptRedirect =
+    directScriptRedirect || Boolean(target && replaceTarget && target[1] === replaceTarget[1])
   const valid =
     source.length <= 8 * 1024 &&
-    /http-equiv=["']refresh["']/i.test(html) &&
-    /url=\.\//i.test(html) &&
+    metaRedirect &&
     /<a\s+[^>]*href=["']\.\/["']/i.test(html) &&
-    /window\.location\.replace\s*\(/.test(html)
+    scriptRedirect
   if (!valid) errors.push('旧地址必须保持轻量跳转到 ./，并保留 meta、链接与脚本回退')
 }
 

@@ -47,7 +47,7 @@ function writeValidDist(distDir) {
   writeFileSync(path.join(distDir, 'index.html'), '<html lang="zh-CN"></html>')
   writeFileSync(
     path.join(distDir, 'jujutsu-life-wheel.html'),
-    '<meta http-equiv="refresh" content="0; url=./"><a href="./">新版</a><script>window.location.replace(target.href)</script>',
+    '<meta http-equiv="refresh" content="0; url=./"><a href="./">新版</a><script>const target = new URL(\'./\', window.location.href);window.location.replace(target.href)</script>',
   )
   for (const name of iconNames) {
     copyFileSync(path.join(publicDir, name), path.join(distDir, name))
@@ -122,6 +122,36 @@ describe('生产产物校验', () => {
     writeFileSync(path.join(distDir, 'sw.js'), serviceWorker(entries))
 
     expect(() => verifyDist(distDir)).toThrowError(/同源相对路径/)
+  })
+
+  it.each([' https://evil.example/index.html', '%2e%2e/index.html'])(
+    '拒绝利用 URL 解析绕过同源相对路径检查：%s',
+    (url) => {
+      const entries = [url, 'jujutsu-life-wheel.html', 'manifest.webmanifest', ...iconNames].map(
+        (entryUrl) => ({ url: entryUrl, revision: 'test' }),
+      )
+      writeFileSync(path.join(distDir, 'sw.js'), serviceWorker(entries))
+
+      expect(() => verifyDist(distDir)).toThrowError(/同源相对路径/)
+    },
+  )
+
+  it('拒绝旧地址的 meta refresh 跳转到错误目标', () => {
+    writeFileSync(
+      path.join(distDir, 'jujutsu-life-wheel.html'),
+      '<meta http-equiv="refresh" content="0; url=https://evil.example/"><p>url=./</p><a href="./">新版</a><script>const target = new URL(\'./\', window.location.href);window.location.replace(target.href)</script>',
+    )
+
+    expect(() => verifyDist(distDir)).toThrowError(/旧地址.*跳转/)
+  })
+
+  it('拒绝旧地址的脚本跳转到错误目标', () => {
+    writeFileSync(
+      path.join(distDir, 'jujutsu-life-wheel.html'),
+      '<meta http-equiv="refresh" content="0; url=./"><a href="./">新版</a><script>const target = new URL(\'https://evil.example/\', window.location.href);window.location.replace(target.href)</script>',
+    )
+
+    expect(() => verifyDist(distDir)).toThrowError(/旧地址.*跳转/)
   })
 
   it('拒绝旧地址退化成非跳转页面', () => {
