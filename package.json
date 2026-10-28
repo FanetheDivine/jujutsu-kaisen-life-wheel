@@ -11,13 +11,14 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "verify:dist": "node scripts/verify-dist.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm build"
+    "check": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm verify:dist"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
