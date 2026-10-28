@@ -2,7 +2,9 @@ import { createInitialGameState, gameStore, getState } from '../store/gameStore'
 import { beep } from './audio'
 import { derived, survivalRate, syncDerivedNames } from './derive'
 import { applyAction, expandAfter } from './flow'
+import { captureCheckpoint, cloneCheckpointBattle, type HistoryCheckpoint } from './history'
 import { buildMarkdown, SYSTEM_PROMPT } from './markdown'
+import { register } from './options'
 import { createBaseFlow } from './registry'
 import { distribution, nextActiveIndex } from './selectors'
 import type { Weights } from './types'
@@ -112,6 +114,7 @@ export function land(idx: number, pick: string | null, immediate = false): void 
     return
   }
 
+  captureCheckpoint(idx, distribution(idx))
   gameStore.setState({ wheelIndex: idx, highlight: pick })
   expandAfter(idx, stage.id, pick)
   const current = getState()
@@ -160,7 +163,7 @@ export function forceLand(idx: number, immediate = false): void {
 }
 
 export function spinNow(): void {
-  doSpin(window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 600 : 4200)
+  doSpin(spinDurationForViewport())
 }
 
 export function skipStage(): void {
@@ -174,6 +177,85 @@ export function startAuto(): void {
   if (getState().spinning || getState().done) return
   gameStore.setState({ auto: true })
   doSpin(520)
+}
+
+function spinDurationForViewport(): number {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 600 : 4200
+}
+
+function checkpointAt(recordIndex: number): HistoryCheckpoint | null {
+  const state = getState()
+  if (state.spinning || state.auto) return null
+  return state.history.find((entry) => entry.recordIndex === recordIndex) || null
+}
+
+function restoreCheckpoint(checkpoint: HistoryCheckpoint): boolean {
+  const state = getState()
+  if (state.spinning || state.auto) return false
+  const position = state.history.findIndex((entry) => entry === checkpoint)
+  if (position < 0) return false
+
+  const generation = state.gen + 1
+  if (state.raf) cancelAnimationFrame(state.raf)
+  if (state.ctrl) {
+    try {
+      state.ctrl.abort()
+    } catch {
+      // 过期请求或不完整数据可以安全忽略。
+    }
+  }
+
+  // 全局 BY 表会被后注册的同名选项覆盖；只恢复到目标轮，保证旧记录文案正确。
+  checkpoint.stages.slice(0, checkpoint.stageIndex + 1).forEach(register)
+  gameStore.setState({
+    gen: generation,
+    i: checkpoint.stageIndex,
+    displayIndex: checkpoint.stageIndex,
+    wheelIndex: checkpoint.stageIndex,
+    stages: [...checkpoint.stages],
+    history: state.history.slice(0, position),
+    results: { ...checkpoint.results },
+    records: checkpoint.records.map((record) => ({ ...record })),
+    battle: cloneCheckpointBattle(checkpoint),
+    jutsuName: checkpoint.jutsuName,
+    domainName: checkpoint.domainName,
+    spinning: false,
+    auto: false,
+    done: false,
+    highlight: null,
+    spinDuration: 0,
+    raf: 0,
+    ctrl: null,
+    markdown: '',
+    story: '',
+    apiStatus: '',
+    apiError: false,
+    generating: false,
+    ledgerScroll: { following: true, seenCount: checkpoint.records.length },
+    storyScroll: { following: true, seenCount: 0 },
+  })
+  return true
+}
+
+/** 回到某次实际抽取之前，并按当前因果重新随机抽取该轮。 */
+export function redrawPast(recordIndex: number): boolean {
+  const checkpoint = checkpointAt(recordIndex)
+  if (!checkpoint || !restoreCheckpoint(checkpoint)) return false
+  doSpin(spinDurationForViewport())
+  return true
+}
+
+/** 回到某次实际抽取之前，以指定选项替代原结果并重新落地。 */
+export function manualSelectPast(recordIndex: number, pick: string): boolean {
+  const checkpoint = checkpointAt(recordIndex)
+  if (!checkpoint) return false
+  const stage = checkpoint.stages[checkpoint.stageIndex]
+  if (!stage || stage.id !== checkpoint.stageId) return false
+  if (!stage.options.some((option) => option.id === pick)) return false
+  if (!restoreCheckpoint(checkpoint)) return false
+
+  land(checkpoint.stageIndex, pick, true)
+  return true
 }
 
 export function resolveBattle(): void {

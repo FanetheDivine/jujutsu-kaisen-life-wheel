@@ -1,0 +1,362 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: color-mix(in oklab, var(--paper) 78%, transparent);
+  backdrop-filter: blur(7px);
+}
+
+.panel {
+  display: flex;
+  width: min(620px, 100%);
+  max-height: min(86vh, 760px);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  outline: none;
+}
+
+.header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--vermillion);
+  font-size: 10.5px;
+  letter-spacing: 0.24em;
+}
+
+.title {
+  color: var(--ink);
+  font-size: clamp(17px, 3.6vw, 21px);
+  line-height: 1.25;
+}
+
+.stageDesc {
+  margin-top: 7px;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  padding: 15px 18px 17px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.section {
+  margin-top: 17px;
+}
+
+.section:first-child {
+  margin-top: 0;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 9px;
+  color: var(--ink);
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.18em;
+}
+
+.sectionTitle::before {
+  width: 5px;
+  height: 5px;
+  background: var(--vermillion);
+  content: '';
+  transform: rotate(45deg);
+}
+
+.original {
+  padding: 10px 12px;
+  border: 1px solid color-mix(in oklab, var(--vermillion) 32%, var(--line));
+  border-radius: var(--r-sm);
+  background: color-mix(in oklab, var(--vermillion) 7%, transparent);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.originalLabel {
+  color: var(--vermillion);
+  font-weight: 700;
+}
+
+.options {
+  display: grid;
+  gap: 5px;
+}
+
+.option {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 7px 10px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.2s,
+    background 0.2s,
+    opacity 0.2s;
+}
+
+.option::before {
+  position: absolute;
+  inset: 0;
+  width: var(--w, 0%);
+  background: color-mix(in oklab, var(--vermillion) 11%, transparent);
+  content: '';
+  transition: width 0.6s var(--ease-out-quart);
+}
+
+.option > * {
+  position: relative;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.option:hover {
+  border-color: color-mix(in oklab, var(--vermillion) 55%, transparent);
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--vermillion);
+  outline-offset: 2px;
+}
+
+.option:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.option.zero {
+  opacity: 0.62;
+}
+
+.option.zero .optionLabel {
+  color: var(--ink-soft);
+}
+
+.option.win {
+  border-color: var(--vermillion);
+  background: color-mix(in oklab, var(--vermillion) 9%, transparent);
+}
+
+.optionLabel {
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.optionMeta {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.optionPct {
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.optionDelta {
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.zeroTag {
+  color: var(--ink-faint);
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+}
+
+.deltaUp {
+  color: var(--vermillion);
+}
+
+.deltaDown {
+  color: var(--indigo);
+}
+
+.badge {
+  margin-left: 7px;
+  padding: 1px 5px;
+  border: 1px solid var(--vermillion);
+  border-radius: 999px;
+  color: var(--vermillion);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.notes {
+  padding-left: 18px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.notesItem + .notesItem {
+  margin-top: 4px;
+}
+
+.noteName {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.notesEmpty {
+  color: var(--ink-faint);
+  font-size: 12px;
+}
+
+.lockNotice {
+  margin-top: 11px;
+  color: var(--indigo);
+  font-size: 11.5px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 18px 15px;
+  border-top: 1px solid var(--line);
+}
+
+.footNote {
+  color: var(--ink-faint);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+.confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: color-mix(in oklab, var(--paper) 72%, transparent);
+  backdrop-filter: blur(5px);
+}
+
+.confirmPanel {
+  width: min(450px, 100%);
+  padding: 19px;
+  border: 1px solid color-mix(in oklab, var(--vermillion) 38%, var(--line));
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  outline: none;
+}
+
+.confirmTitle {
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.confirmBody {
+  margin-top: 11px;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.choice {
+  margin-top: 11px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--paper-2);
+  color: var(--ink);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.choiceStrong {
+  color: var(--vermillion);
+  font-weight: 700;
+}
+
+.warning {
+  margin-top: 11px;
+  padding-left: 10px;
+  border-left: 2px solid var(--vermillion);
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.confirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 17px;
+}
+
+@media (max-width: 480px) {
+  .overlay {
+    padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
+      max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  }
+
+  .header,
+  .body,
+  .footer {
+    padding-right: 13px;
+    padding-left: 13px;
+  }
+
+  .footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .actions,
+  .confirmActions {
+    width: 100%;
+  }
+
+  .actions > *,
+  .confirmActions > * {
+    flex: 1;
+  }
+}

@@ -121,6 +121,7 @@ export function Wheel() {
             role="button"
             tabIndex={0}
             aria-label="转动转盘"
+            data-history-focus="wheel"
             onClick={spinNow}
             onKeyDown={onKeyDown}
           >

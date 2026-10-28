@@ -1,9 +1,11 @@
 import { createStore } from 'zustand/vanilla'
+import type { HistoryCheckpoint } from '../game/history'
 import type { AppState, Stage } from '../game/types'
 import type { ScrollFollowState } from '../lib/scrollFollow'
 
 export interface GameStore extends AppState {
   stages: Stage[]
+  history: HistoryCheckpoint[]
   displayIndex: number
   wheelIndex: number
   highlight: string | null
@@ -50,6 +52,7 @@ export function createInitialGameState(): GameStore {
     domainName: '',
     quickBout: false,
     stages: [],
+    history: [],
     displayIndex: 0,
     wheelIndex: 0,
     highlight: null,

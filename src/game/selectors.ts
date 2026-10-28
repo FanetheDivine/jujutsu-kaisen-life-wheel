@@ -1,6 +1,8 @@
 import { gameStore, getState } from '../store/gameStore'
 import type { DistributionNote, LifeRecord, WeightChange, Weights } from './types'
 
+export type Distribution = ReturnType<typeof distribution>
+
 export function distribution(idx: number) {
   const { stages, results: context } = getState()
   const stage = stages[idx]
