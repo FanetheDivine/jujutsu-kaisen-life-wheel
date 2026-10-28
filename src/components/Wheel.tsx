@@ -50,7 +50,7 @@ export function Wheel() {
   return (
     <div className="grid place-items-center py-0.5">
       <div className="relative aspect-square w-[min(100%,420px)]">
-        <svg viewBox="0 0 400 400" aria-hidden="true" className="block size-full overflow-visible">
+        <svg viewBox="0 0 400 400" className="block size-full overflow-visible">
           <defs>
             <radialGradient id="glow" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor="var(--vermillion)" stopOpacity=".16" />

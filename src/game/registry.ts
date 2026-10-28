@@ -68,6 +68,10 @@ export function stageById(id: string): Stage {
   return stage
 }
 
+export function createBaseFlow(): Stage[] {
+  return BASE_FLOW.map((stage) => stage)
+}
+
 export function resetFlow(): void {
-  gameStore.setState({ stages: BASE_FLOW.map((stage) => stage) })
+  gameStore.setState({ stages: createBaseFlow() })
 }

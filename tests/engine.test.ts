@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { forceLand, restart } from '../src/game/actions'
 import { applyAction, expandAfter } from '../src/game/flow'
 import { enemyActionStage } from '../src/game/data'
 import { derived, syncDerivedNames } from '../src/game/derive'
-import { buildMarkdown } from '../src/game/markdown'
-import { register } from '../src/game/options'
+import { buildMarkdown, SYSTEM_PROMPT } from '../src/game/markdown'
+import { labelOf, register } from '../src/game/options'
 import { BASE_FLOW, resetFlow } from '../src/game/registry'
 import { power } from '../src/game/rules'
 import { distribution, nextActiveIndex } from '../src/game/selectors'
@@ -16,6 +17,51 @@ function resetEngine(): void {
 }
 
 beforeEach(resetEngine)
+
+describe('应用生命周期', () => {
+  it('重开一次发布完整基础流程，不产生空轮次中间状态', () => {
+    const observedLengths: number[] = []
+    const unsubscribe = gameStore.subscribe((state) => {
+      observedLengths.push(state.stages.length)
+    })
+    vi.stubGlobal('window', { scrollTo: vi.fn() })
+
+    try {
+      restart()
+    } finally {
+      unsubscribe()
+      vi.unstubAllGlobals()
+    }
+
+    expect(observedLengths).toEqual([BASE_FLOW.length])
+    expect(gameStore.getState().stages.map((stage) => stage.id)).toEqual(
+      BASE_FLOW.map((stage) => stage.id),
+    )
+  })
+
+  it('连续立即落地能够抵达终局并生成完整档案', async () => {
+    vi.useFakeTimers()
+    try {
+      gameStore.setState({ systemPrompt: '上一人生自定义的提示词' })
+      let guard = 0
+      while (!gameStore.getState().results.legacy && guard++ < 500) {
+        forceLand(gameStore.getState().i, true)
+      }
+      expect(guard).toBeLessThan(500)
+      expect(gameStore.getState().results.ending).toBeTruthy()
+      expect(gameStore.getState().results.legacy).toBeTruthy()
+
+      await vi.advanceTimersByTimeAsync(700)
+
+      expect(gameStore.getState().done).toBe(true)
+      expect(gameStore.getState().systemPrompt).toBe(SYSTEM_PROMPT)
+      expect(gameStore.getState().markdown).toContain('# 咒术回战 · 抽选人生')
+      expect(gameStore.getState().markdown).toContain(labelOf(gameStore.getState().results.ending))
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
 
 describe('概率分布与因果规则', () => {
   it('首轮使用原始权重，概率总和为 100', () => {

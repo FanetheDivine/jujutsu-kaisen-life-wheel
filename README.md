@@ -2,7 +2,7 @@
 
 转动数十轮因果轮盘，抽出一个属于《咒术回战》世界观的“人生”，并把结果导出成 Markdown 档案，交给任意 AI 写成同人短篇。
 
-项目使用 **Vite + 严格 TypeScript + vite-plugin-pwa** 构建，是可直接部署到静态托管服务的可安装 PWA；运行时不依赖后端。
+项目使用 **React 19 + 严格 TypeScript + Tailwind CSS v4 + Zustand** 构建界面与状态层，由 **Vite + vite-plugin-pwa** 打包为可直接部署到静态托管服务的可安装 PWA；运行时不依赖后端。
 
 **当前版本：`v6.0`**（2026-10-15 · 多场战斗 + 战后成长 + 早死分支）
 
@@ -29,7 +29,7 @@
 
 ### 动态轮次队列
 
-流程使用可动态插入的 `STAGES` 队列。每轮落地后会按结果加入经历、缺席原因、技能、咒具、束缚、战斗回合、黑闪追击、御三家家门与战后成长等后续轮次。
+流程使用 Zustand 中可动态插入的 `stages` 队列。每轮落地后会按结果加入经历、缺席原因、技能、咒具、束缚、战斗回合、黑闪追击、御三家家门与战后成长等后续轮次。
 
 ## 一轮人生包含什么
 
@@ -95,7 +95,7 @@ pnpm dev
 | `pnpm test:watch`   | 监听模式运行测试                                    |
 | `pnpm check`        | 依次执行格式、类型、lint、测试、生产构建与产物校验  |
 
-现有测试覆盖确定性随机工具、关键 DOM 回归场景，以及生产 PWA 产物的结构校验和异常负例。
+现有测试只渲染或断言纯逻辑与生产产物，不依赖 React 组件或页面 DOM：覆盖确定性随机工具、概率与因果干涉、动态插轮、战斗结算、派生命名、Markdown 与 API 响应解析，以及生产 PWA 产物的结构校验和异常负例。
 
 ## PWA 与离线
 
@@ -122,13 +122,24 @@ pnpm preview
 ## 项目结构
 
 ```text
-index.html                     页面语义结构，Vite 入口
+index.html                     文档元信息、PWA 图标与 React #root 挂载点
 src/
-  main.ts                      样式、应用与 Service Worker 注册入口
-  app.ts                       轮盘配置、因果规则、状态、战斗、渲染、导出与 API
+  main.tsx                     React、初始流程、样式与 Service Worker 注册入口
+  App.tsx                      页面布局与组件组合
+  components/                  React 界面、基础 UI 与组件专属 CSS Modules
+  game/
+    data.ts                    轮盘配置、因果规则与战斗阶段工厂
+    actions.ts                 旋转、落地、跳过、结算、终局与重开动作
+    selectors.ts               当前概率分布与动态轮次推进
+    derive.ts                  确定性派生命名与生还率
+    markdown.ts                完整档案与系统提示词
+    generate.ts                OpenAI 兼容请求与流式生成
+    types.ts                   业务类型定义
+    version.ts                 玩法版本与导出信息
+  store/                       Zustand vanilla store 与 React 绑定
+  lib/                         Tailwind 类名合并、复制与下载浏览器辅助函数
+  index.css                    Tailwind 令牌、明暗主题变量与响应式断点
   random.ts                    确定性随机工具
-  types.ts                     业务类型定义
-  styles.css                   全部样式与主题
   vite-env.d.ts                Vite / PWA 类型引用
 public/
   favicon.svg                  浏览器图标
@@ -140,12 +151,11 @@ vite.config.ts                 Vite、Vitest 与 PWA 配置
 .github/workflows/ci.yml       PR 与 main 分支完整检查
 .github/workflows/deploy.yml   v* 标签触发的 GitHub Pages 部署
 AGENTS.md                      项目梗概与协作指南
-sync.sh                        旧的 main 直推辅助脚本
 ```
 
 ## 版本
 
-版本号显示在网页标题旁与页脚，也会写进导出的 Markdown 档案，由 `src/app.ts` 中的 `VERSION` / `VERSION_DATE` / `VERSION_NOTE` 维护。
+版本号显示在网页标题旁，也会写进导出的 Markdown 档案，由 `src/game/version.ts` 中的 `VERSION` / `VERSION_DATE` / `VERSION_NOTE` 维护。
 
 - **v6.0**（2026-10-15）：全部事件战、按立场与强度匹配敌人、战后成长、早死分支及「事件战只出结算」。
 - **v5.x**：御三家细化、立场冲突修复、复制反馈修复、「重新开始」与束缚链修复。

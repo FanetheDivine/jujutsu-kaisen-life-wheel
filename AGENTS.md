@@ -6,27 +6,30 @@
 
 这是《咒术回战》同人向人生抽选器：数十轮因果轮盘实时改写后续权重，支持动态轮次、事件战、宿傩二番战、终局档案导出，以及用户自填 OpenAI 兼容 API 生成故事。
 
-- 技术栈：pnpm、Vite、原生 TypeScript、直接 DOM 渲染、Vitest、ESLint、Prettier、vite-plugin-pwa。
+- 技术栈：pnpm、Vite、React 19、严格 TypeScript、Tailwind CSS v4、Zustand、Vitest、ESLint、Prettier、vite-plugin-pwa。
 - 当前玩法版本：`v6.0`。迁移构建工具不等于升级玩法版本。
 - 纯静态前端，无后端；生产产物是 `dist/`，可部署到 GitHub Pages 项目子目录。
 - 仓库变更遵循 `.agents/skills/agent-workflow/SKILL.md`：独立 worktree、需求与 checklist 确认、按模块提交、完整检查后 PR，用户验收通过才 squash 合并。
 
 ## 目录与职责
 
-| 路径                           | 职责                                                                       |
-| ------------------------------ | -------------------------------------------------------------------------- |
-| `index.html`                   | 页面语义结构与 Vite 入口；保留现有 DOM id                                  |
-| `src/main.ts`                  | 组合样式、应用和 Service Worker 注册                                       |
-| `src/app.ts`                   | 轮盘配置、因果规则、动态流程、战斗、渲染、导出和 API；当前核心业务集中于此 |
-| `src/types.ts`                 | 轮次、选项、记录、战斗、状态等类型                                         |
-| `src/random.ts`                | `mulberry32` 与 `seedOf`，保证相同输入的确定性                             |
-| `src/styles.css`               | 浅色 / 深色主题、响应式布局、动效及 reduced-motion 适配                    |
-| `public/`                      | PWA 图标和旧地址兼容跳转页，不存放业务逻辑                                 |
-| `tests/`                       | Vitest 单元、DOM 回归与生产产物校验测试                                    |
-| `scripts/verify-dist.mjs`      | 校验 Manifest、Service Worker、图标、预缓存与旧地址跳转                    |
-| `vite.config.ts`               | 相对部署路径、Vitest、Manifest 与 Workbox 配置                             |
-| `.github/workflows/ci.yml`     | PR、main 推送与手动触发的完整检查                                          |
-| `.github/workflows/deploy.yml` | `v*` 标签推送或手动触发时检查、构建并发布 GitHub Pages                     |
+| 路径                           | 职责                                                              |
+| ------------------------------ | ----------------------------------------------------------------- |
+| `index.html`                   | 文档元信息、PWA 图标与 React `#root` 挂载点                       |
+| `src/main.tsx`                 | React 挂载、初始流程、样式和 Service Worker 注册                  |
+| `src/App.tsx`                  | 页面布局与组件组合                                                |
+| `src/components/`              | React 组件、基础 UI 与组件专属 CSS Modules                        |
+| `src/game/`                    | 轮盘配置、因果规则、动态流程、战斗、导出和 API；不得依赖 React    |
+| `src/store/`                   | Zustand vanilla store 与 React 绑定；界面状态的唯一来源           |
+| `src/lib/`                     | 类名合并、复制与下载等辅助函数                                    |
+| `src/index.css`                | Tailwind 令牌、明暗主题变量、断点；不新增自定义 `@layer`          |
+| `src/random.ts`                | `mulberry32` 与 `seedOf`，保证相同输入的确定性                    |
+| `public/`                      | PWA 图标和旧地址兼容跳转页，不存放业务逻辑                        |
+| `tests/`                       | Vitest 纯逻辑单元测试与生产产物校验测试，不渲染组件或读取页面 DOM |
+| `scripts/verify-dist.mjs`      | 校验 Manifest、Service Worker、图标、预缓存与旧地址跳转           |
+| `vite.config.ts`               | 相对部署路径、Vitest、Manifest 与 Workbox 配置                    |
+| `.github/workflows/ci.yml`     | PR、main 推送与手动触发的完整检查                                 |
+| `.github/workflows/deploy.yml` | `v*` 标签推送或手动触发时检查、构建并发布 GitHub Pages            |
 
 ## 常用命令
 
@@ -49,8 +52,8 @@ pnpm check
 
 1. **保持玩法兼容**：除非用户明确要求，不改变界面、概率、规则顺序、动态插轮、战斗结算、导出结构或 API 行为。
 2. **严格类型**：不得用 `ts-nocheck`、`ts-ignore` 或 `any` 规避迁移与修复；优先补全类型模型和运行时收窄。
-3. **测试先行**：变更业务规则前先增加能验证行为的测试。修改 DOM 初始化、跳过、重开等交互时保留现有回归场景。
-4. **直接 DOM 约定**：`src/app.ts` 依赖 `index.html` 中既有 id 与结构；重命名或删除元素时同步更新查询和测试。不要擅自引入 UI 框架。
+3. **测试先行**：变更业务规则前先增加能验证行为的纯逻辑测试。测试不得依赖 React 渲染、`index.html` 或页面 DOM。
+4. **React 与状态约定**：业务状态统一放在 Zustand；组件不得恢复命令式 DOM 模板或在渲染期写 store。可复用样式写成组件并使用 Tailwind，组件专属效果使用同名 CSS Module，不新增自定义 `@layer`。
 5. **版本一致**：玩法变更时同步 `VERSION` / `VERSION_DATE` / `VERSION_NOTE`、页面展示与导出信息；纯工程迁移保留 `v6.0`。
 6. **旧地址只兼容**：`public/jujutsu-life-wheel.html` 必须保持轻量跳转，不能把旧单文件业务代码加回来。
 7. **相对部署路径**：保持 `base: './'` 和 Manifest 的相对 `start_url` / `scope`，避免破坏 GitHub Pages 子目录部署。

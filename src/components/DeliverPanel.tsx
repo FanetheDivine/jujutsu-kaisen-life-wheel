@@ -20,10 +20,8 @@ export function DeliverPanel() {
     if (done) root.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [done])
 
-  if (!done) return null
-
   return (
-    <section ref={root} className="mt-7">
+    <section ref={root} hidden={!done} className="mt-7">
       <Card title="此生交付" note="MARKDOWN · AI PROMPT · STORY">
         <div className="grid grid-cols-1 gap-[clamp(18px,2.4vw,28px)] mid:grid-cols-2">
           <div>

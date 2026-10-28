@@ -59,6 +59,8 @@ export function ApiPanel() {
       <div className="mt-3 grid grid-cols-1 gap-2.5 mid:grid-cols-2">
         <Field label="API Base" className="mid:col-span-full">
           <input
+            id="api-base"
+            name="base"
             className={inputClass}
             value={base}
             onChange={(event) => setBase(event.target.value)}
@@ -66,6 +68,8 @@ export function ApiPanel() {
         </Field>
         <Field label="Model">
           <input
+            id="api-model"
+            name="model"
             className={inputClass}
             value={model}
             onChange={(event) => setModel(event.target.value)}
@@ -73,6 +77,8 @@ export function ApiPanel() {
         </Field>
         <Field label="Temperature">
           <input
+            id="api-temperature"
+            name="temperature"
             type="number"
             min="0"
             max="2"
@@ -84,6 +90,8 @@ export function ApiPanel() {
         </Field>
         <Field label="API Key" className="mid:col-span-full">
           <input
+            id="api-key"
+            name="key"
             type="password"
             autoComplete="off"
             placeholder="sk-…"
@@ -94,6 +102,8 @@ export function ApiPanel() {
         </Field>
         <Field label="系统提示词（可编辑）" className="mid:col-span-full">
           <textarea
+            id="system-prompt"
+            name="systemPrompt"
             rows={5}
             className={cn(inputClass, 'resize-y leading-[1.6]')}
             value={systemPrompt}

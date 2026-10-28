@@ -2,8 +2,8 @@ import { createInitialGameState, gameStore, getState } from '../store/gameStore'
 import { beep } from './audio'
 import { derived, survivalRate, syncDerivedNames } from './derive'
 import { applyAction, expandAfter } from './flow'
-import { buildMarkdown } from './markdown'
-import { resetFlow } from './registry'
+import { buildMarkdown, SYSTEM_PROMPT } from './markdown'
+import { createBaseFlow } from './registry'
 import { distribution, nextActiveIndex } from './selectors'
 import type { Weights } from './types'
 
@@ -201,7 +201,7 @@ export function finish(): void {
   gameStore.setState({ done: true, auto: false })
   const life = derived()
   const rate = survivalRate()
-  gameStore.setState({ markdown: buildMarkdown(life, rate) })
+  gameStore.setState({ markdown: buildMarkdown(life, rate), systemPrompt: SYSTEM_PROMPT })
 }
 
 export function restart(): void {
@@ -222,7 +222,8 @@ export function restart(): void {
     sound,
     quickBout,
     systemPrompt,
+    // 一次发布完整初始状态，避免订阅者观察到 stages 为空的中间帧。
+    stages: createBaseFlow(),
   })
-  resetFlow()
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
