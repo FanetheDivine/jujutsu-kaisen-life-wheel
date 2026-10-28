@@ -4,8 +4,7 @@ export interface ChatCompletionResponse {
 
 export function extractCompletionText(response: ChatCompletionResponse): string {
   const message = response.choices?.[0]?.message
-  if (!message) throw new Error('接口返回结构异常：' + JSON.stringify(response).slice(0, 2000))
-  return message.content ?? ''
+  return message ? (message.content ?? '') : JSON.stringify(response).slice(0, 2000)
 }
 
 export function extractSseText(chunk: string): string {

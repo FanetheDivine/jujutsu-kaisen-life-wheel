@@ -1,3 +1,4 @@
+import { DeliverPanel } from './components/DeliverPanel'
 import { Header } from './components/Header'
 import { Ledger } from './components/Ledger'
 import { StagePanel } from './components/StagePanel'
@@ -28,6 +29,7 @@ export function App() {
             <Ledger />
           </section>
         </main>
+        <DeliverPanel />
         <p className="mt-9 text-center text-[11.5px] tracking-[0.08em] text-ink-faint">
           本作为《咒术回战》二次创作的同人向玩具 · 版权归原作者芥见下下及集英社所有 ·
           生成结果仅供娱乐
