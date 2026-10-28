@@ -81,20 +81,21 @@ pnpm dev
 
 ### 常用命令
 
-| 命令                | 用途                                     |
-| ------------------- | ---------------------------------------- |
-| `pnpm dev`          | 启动 Vite 开发服务器                     |
-| `pnpm build`        | 严格类型检查并生成 `dist/`               |
-| `pnpm preview`      | 本地预览生产构建                         |
-| `pnpm typecheck`    | TypeScript 严格类型检查                  |
-| `pnpm lint`         | ESLint 检查                              |
-| `pnpm format`       | Prettier 格式化                          |
-| `pnpm format:check` | Prettier 格式检查                        |
-| `pnpm test`         | 运行 Vitest 测试                         |
-| `pnpm test:watch`   | 监听模式运行测试                         |
-| `pnpm check`        | 依次执行格式、类型、lint、测试与生产构建 |
+| 命令                | 用途                                                |
+| ------------------- | --------------------------------------------------- |
+| `pnpm dev`          | 启动 Vite 开发服务器                                |
+| `pnpm build`        | 严格类型检查并生成 `dist/`                          |
+| `pnpm verify:dist`  | 校验 Manifest、Service Worker、图标与旧地址跳转产物 |
+| `pnpm preview`      | 本地预览生产构建                                    |
+| `pnpm typecheck`    | TypeScript 严格类型检查                             |
+| `pnpm lint`         | ESLint 检查                                         |
+| `pnpm format`       | Prettier 格式化                                     |
+| `pnpm format:check` | Prettier 格式检查                                   |
+| `pnpm test`         | 运行 Vitest 测试                                    |
+| `pnpm test:watch`   | 监听模式运行测试                                    |
+| `pnpm check`        | 依次执行格式、类型、lint、测试、生产构建与产物校验  |
 
-现有测试覆盖确定性随机工具，以及应用初始化、跳过轮次、重新开始与主题切换等关键 DOM 回归场景。
+现有测试覆盖确定性随机工具、关键 DOM 回归场景，以及生产 PWA 产物的结构校验和异常负例。
 
 ## PWA 与离线
 
@@ -108,12 +109,13 @@ pnpm dev
 
 ```sh
 pnpm build
+pnpm verify:dist
 pnpm preview
 ```
 
-生产文件输出到 `dist/`。Vite 使用 `base: './'`，因此可部署在 GitHub Pages 的项目子目录，不必把资源路径写死到域名根目录。
+生产文件输出到 `dist/`。Vite 使用 `base: './'`，因此可部署在 GitHub Pages 的项目子目录，不必把资源路径写死到域名根目录。`pnpm verify:dist` 会检查相对部署字段、Service Worker、预缓存、普通与 maskable 图标，以及旧地址跳转。
 
-`.github/workflows/deploy.yml` 会在 `main` 分支推送后安装依赖、执行生产构建并发布 `dist/`。首次使用时，在仓库 **Settings → Pages** 中将 Source 设为 **GitHub Actions**。
+`.github/workflows/ci.yml` 会在 PR、`main` 分支推送和手动触发时执行完整 `pnpm check`。`.github/workflows/deploy.yml` 只在推送 `v*` 标签（例如 `v6.0.1`）或手动触发时执行完整检查并发布同一份 `dist/`；`main` 分支推送不再自动部署。首次使用时，在仓库 **Settings → Pages** 中将 Source 设为 **GitHub Actions**。
 
 旧 `jujutsu-life-wheel.html` 的源码位于 `public/jujutsu-life-wheel.html`，只负责跳转，不再包含业务代码。
 
@@ -132,9 +134,11 @@ public/
   favicon.svg                  浏览器图标
   pwa-*.png                    普通与 maskable PWA 图标
   jujutsu-life-wheel.html      旧地址兼容跳转页
-tests/                         Vitest 回归测试
+tests/                         Vitest 与生产产物校验测试
+scripts/verify-dist.mjs        生产 PWA 产物校验脚本
 vite.config.ts                 Vite、Vitest 与 PWA 配置
-.github/workflows/deploy.yml   GitHub Pages 自动部署
+.github/workflows/ci.yml       PR 与 main 分支完整检查
+.github/workflows/deploy.yml   v* 标签触发的 GitHub Pages 部署
 AGENTS.md                      项目梗概与协作指南
 sync.sh                        旧的 main 直推辅助脚本
 ```
