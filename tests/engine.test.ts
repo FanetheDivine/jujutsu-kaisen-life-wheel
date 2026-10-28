@@ -273,7 +273,7 @@ describe('派生与档案', () => {
     })
     const markdown = buildMarkdown(derived(), 50)
 
-    expect(markdown).toContain('> 生成器版本：v6.0')
+    expect(markdown).toContain('> 生成器版本：v6.1')
     expect(markdown).toContain('## 二、六维性能（E–EX）')
     expect(markdown).toContain('## 六、决战逐回合记录')
     expect(markdown).toContain('## 十二、请为我写故事')

@@ -7,7 +7,7 @@
 这是《咒术回战》同人向人生抽选器：数十轮因果轮盘实时改写后续权重，支持动态轮次、事件战、宿傩二番战、终局档案导出，以及用户自填 OpenAI 兼容 API 生成故事。
 
 - 技术栈：pnpm、Vite、React 19、严格 TypeScript、Tailwind CSS v4、Zustand、Vitest、ESLint、Prettier、vite-plugin-pwa。
-- 当前玩法版本：`v6.0`。迁移构建工具不等于升级玩法版本。
+- 当前玩法版本：`v6.1`。迁移构建工具不等于升级玩法版本。
 - 纯静态前端，无后端；生产产物是 `dist/`，可部署到 GitHub Pages 项目子目录。
 - 仓库变更遵循 `.agents/skills/agent-workflow/SKILL.md`：独立 worktree、需求与 checklist 确认、按模块提交、完整检查后 PR，用户验收通过才 squash 合并。
 
