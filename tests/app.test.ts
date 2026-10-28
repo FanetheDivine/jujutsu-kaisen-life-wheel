@@ -34,6 +34,7 @@ describe('应用迁移回归', () => {
     expect(element('ledger').querySelectorAll('.ledger-row')).toHaveLength(0)
     expect(element('ledgerNote').textContent).toMatch(/^0 \/ \d+ 轮$/)
     expect(document.querySelector('.ver')?.textContent).toBe('v6.0')
+    expect(document.body.textContent).toContain('Vite · TypeScript · PWA · 离线可用')
     expect(element<HTMLInputElement>('sysPrompt').value).toContain('你是精通《咒术回战》')
   })
 
