@@ -22,9 +22,11 @@
 | `src/random.ts`                | `mulberry32` 与 `seedOf`，保证相同输入的确定性                             |
 | `src/styles.css`               | 浅色 / 深色主题、响应式布局、动效及 reduced-motion 适配                    |
 | `public/`                      | PWA 图标和旧地址兼容跳转页，不存放业务逻辑                                 |
-| `tests/`                       | Vitest 单元与 DOM 回归测试                                                 |
+| `tests/`                       | Vitest 单元、DOM 回归与生产产物校验测试                                    |
+| `scripts/verify-dist.mjs`      | 校验 Manifest、Service Worker、图标、预缓存与旧地址跳转                    |
 | `vite.config.ts`               | 相对部署路径、Vitest、Manifest 与 Workbox 配置                             |
-| `.github/workflows/deploy.yml` | main 分支的 GitHub Pages 构建与发布                                        |
+| `.github/workflows/ci.yml`     | PR、main 推送与手动触发的完整检查                                          |
+| `.github/workflows/deploy.yml` | `v*` 标签推送或手动触发时检查、构建并发布 GitHub Pages                     |
 
 ## 常用命令
 
@@ -36,11 +38,12 @@ pnpm typecheck
 pnpm lint
 pnpm format
 pnpm build
+pnpm verify:dist
 pnpm preview
 pnpm check
 ```
 
-提交前必须运行 `pnpm check`，它依次执行格式检查、类型检查、lint、测试和生产构建。不要使用旧的 `sync.sh` 直推 main 来代替分支与 PR 工作流。
+提交前必须运行 `pnpm check`，它依次执行格式检查、类型检查、lint、测试、生产构建和产物校验。不要使用旧的 `sync.sh` 直推 main 来代替分支与 PR 工作流。
 
 ## 修改约束
 

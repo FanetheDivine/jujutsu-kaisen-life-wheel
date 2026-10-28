@@ -1,5 +1,5 @@
 import { VitePWA } from 'vite-plugin-pwa'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 
 export default defineConfig({
   base: './',
@@ -46,5 +46,6 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
     restoreMocks: true,
+    exclude: [...configDefaults.exclude, '.agents/worktrees/**', '.dsh/**'],
   },
 })
