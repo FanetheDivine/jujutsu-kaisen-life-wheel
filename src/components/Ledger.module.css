@@ -1,3 +1,23 @@
+.viewport {
+  max-height: min(640px, 60dvh);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  overflow-anchor: none;
+  overflow-wrap: anywhere;
+  outline-offset: 2px;
+}
+
+.viewport:focus-visible {
+  outline: 2px solid var(--vermillion);
+}
+
+@media (min-width: 980px) {
+  .viewport {
+    max-height: min(760px, 72dvh);
+  }
+}
+
 .fresh {
   animation: pop 0.45s var(--ease-out-quart);
 }

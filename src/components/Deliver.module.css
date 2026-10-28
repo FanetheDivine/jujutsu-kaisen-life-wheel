@@ -19,6 +19,7 @@
 .story {
   min-height: min(220px, 40dvh);
   max-height: min(520px, 65dvh);
+  overflow-anchor: none;
   font-size: 14px;
   color: var(--ink);
 }

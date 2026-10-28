@@ -40,6 +40,8 @@ describe('应用生命周期', () => {
   it('重开恢复手机抽选面板并清空上一人生', () => {
     gameStore.setState({
       mobilePanel: 'ledger',
+      ledgerScroll: { following: false, seenCount: 1 },
+      storyScroll: { following: false, seenCount: 100 },
       records: [{ stageId: 'era', value: 'e4', skipped: false }],
     })
     vi.stubGlobal('window', { scrollTo: vi.fn() })
@@ -47,6 +49,8 @@ describe('应用生命周期', () => {
       restart()
       expect(gameStore.getState().mobilePanel).toBe('draw')
       expect(gameStore.getState().records).toEqual([])
+      expect(gameStore.getState().ledgerScroll).toEqual({ following: true, seenCount: 0 })
+      expect(gameStore.getState().storyScroll).toEqual({ following: true, seenCount: 0 })
     } finally {
       vi.unstubAllGlobals()
     }
