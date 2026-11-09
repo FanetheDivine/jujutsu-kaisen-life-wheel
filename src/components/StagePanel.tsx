@@ -15,6 +15,7 @@ export function StagePanel() {
   const results = useGameStore((state) => state.results)
   const battle = useGameStore((state) => state.battle)
   const spinning = useGameStore((state) => state.spinning)
+  const pendingNext = useGameStore((state) => state.pendingNext)
   const done = useGameStore((state) => state.done)
   const quickBout = useGameStore((state) => state.quickBout)
   const dist = distribution(index)
@@ -49,12 +50,14 @@ export function StagePanel() {
     stage.id === 'battleRounds2' ||
     stage.id === 'duel' ||
     stage.id === 'duel2'
-  const disabled = spinning || done
+  const disabled = spinning || done || pendingNext != null
 
   return (
     <>
       <p className="mt-0.5 text-center text-[11.5px] tracking-[0.08em] text-ink-faint">
-        点中央的「呪」即可转动 —— 扇区面积就是当下的真实几率
+        {pendingNext != null
+          ? '本轮结果已定 —— 点中央的「→」进入下一轮'
+          : '点中央的「呪」即可转动 —— 扇区面积就是当下的真实几率'}
       </p>
       <div className="mx-0 mt-3 mb-1 text-center">
         <div className="text-[11px] tracking-[0.28em] text-vermillion">

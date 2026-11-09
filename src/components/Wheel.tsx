@@ -1,5 +1,5 @@
 import { useEffect, useRef, type KeyboardEvent } from 'react'
-import { spinNow } from '../game/actions'
+import { advance, spinNow } from '../game/actions'
 import { distribution } from '../game/selectors'
 import { cn } from '../lib/cn'
 import { useGameStore } from '../store/useGameStore'
@@ -12,6 +12,8 @@ export function Wheel() {
   const highlight = useGameStore((state) => state.highlight)
   const rotation = useGameStore((state) => state.rot)
   const duration = useGameStore((state) => state.spinDuration)
+  const pendingNext = useGameStore((state) => state.pendingNext)
+  const holding = pendingNext != null
   const wheelRef = useRef<SVGGElement>(null)
   const dist = distribution(index)
   const items = dist.stage.options.filter((option) => dist.pct[option.id] > 0.05)
@@ -35,10 +37,15 @@ export function Wheel() {
     wheel.style.transform = `rotate(${rotation}deg)`
   }, [duration, rotation])
 
+  const activate = (): void => {
+    if (holding) advance()
+    else spinNow()
+  }
+
   const onKeyDown = (event: KeyboardEvent<SVGGElement>): void => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
-      spinNow()
+      activate()
     }
   }
 
@@ -120,14 +127,18 @@ export function Wheel() {
             className={styles.hubGroup}
             role="button"
             tabIndex={0}
-            aria-label="转动转盘"
-            onClick={spinNow}
+            aria-label={holding ? '进入下一轮' : '转动转盘'}
+            onClick={activate}
             onKeyDown={onKeyDown}
           >
             <circle className={styles.hub} cx="200" cy="200" r="42" />
-            <text className={styles.hubText} x="200" y="207">
-              呪
-            </text>
+            {holding ? (
+              <path className={styles.advanceArrow} d="M188 200H211M201 189L212 200L201 211" />
+            ) : (
+              <text className={styles.hubText} x="200" y="207">
+                呪
+              </text>
+            )}
             <text className={styles.hubSub} x="200" y="226">
               ROUND {String(index + 1).padStart(2, '0')}
             </text>
