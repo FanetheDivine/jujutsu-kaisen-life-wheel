@@ -17,7 +17,7 @@
   fill: var(--hl);
 }
 .sector text {
-  fill: var(--ink);
+  fill: var(--wheel-text);
   font-family: var(--font-body);
   font-weight: 500;
 }
