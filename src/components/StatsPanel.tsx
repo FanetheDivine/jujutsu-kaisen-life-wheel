@@ -1,11 +1,10 @@
 import { chosenSkills } from '../game/data'
 import { derived, survivalRate } from '../game/derive'
 import { BY, labelOf } from '../game/options'
-import { DIMS, rankOfScore, RNK, RV } from '../game/ranks'
 import { domLabel, power, techLabel } from '../game/rules'
 import { useGameStore } from '../store/useGameStore'
 import { BattleBox } from './BattleBox'
-import { Card } from './ui/Card'
+import { RadarChart } from './RadarChart'
 import { Chip } from './ui/Chip'
 
 export function StatsPanel() {
@@ -50,10 +49,7 @@ export function StatsPanel() {
   const survival = reached && endingIndex >= 0 ? survivalRate() : null
 
   return (
-    <Card
-      title="咒力检定"
-      note={combatPower ? `综合战力 ${combatPower} · ${rankOfScore(combatPower)}` : '综合战力 —'}
-    >
+    <>
       <div className="mb-3.5 flex flex-wrap gap-2">
         {results.era ? (
           <>
@@ -71,36 +67,7 @@ export function StatsPanel() {
           <Chip>术式 / 领域 / 称号 —— 尚未抽选</Chip>
         )}
       </div>
-      <div className="flex flex-col gap-[7px]">
-        {DIMS.map((dimension) => {
-          const value = results[dimension.k] ? RV(results, dimension.k) : 0
-          const rank = results[dimension.k] ? RNK(results, dimension.k) : '—'
-          return (
-            <div
-              key={dimension.k}
-              title={`${dimension.n} ${value}`}
-              className="grid grid-cols-[60px_1fr_30px] items-center gap-2.5 text-xs"
-            >
-              <span>{dimension.n}</span>
-              <span className="h-1.5 overflow-hidden rounded-full bg-paper-2">
-                <span
-                  className="block h-full bg-[linear-gradient(90deg,var(--indigo),var(--vermillion))] transition-[width] duration-700 ease-out-quart"
-                  style={{ width: `${value}%` }}
-                />
-              </span>
-              <span
-                className={
-                  results[dimension.k]
-                    ? 'text-right font-bold tracking-[0.02em] text-ink-soft'
-                    : 'text-right font-normal text-ink-faint'
-                }
-              >
-                {rank}
-              </span>
-            </div>
-          )
-        })}
-      </div>
+      <RadarChart results={results} combatPower={combatPower} />
       <div className="mt-3 flex flex-wrap gap-2">
         {skills.length ? (
           <Chip>
@@ -149,6 +116,6 @@ export function StatsPanel() {
               : '由时代、六维、等级、阵营、羁绊、决战与战后成长共同折算。'}
         </p>
       </div>
-    </Card>
+    </>
   )
 }

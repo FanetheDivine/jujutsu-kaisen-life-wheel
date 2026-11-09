@@ -8,9 +8,12 @@ import type { Weights } from './types'
 
 const mod360 = (angle: number): number => ((angle % 360) + 360) % 360
 
+/** 转动结束到落地结算之间的余量（毫秒）。 */
+export const SPIN_SETTLE_MS = 60
+
 /** 各类转动时长（毫秒）：手动、减少动效、自动连抽、战斗快进、自动接续。 */
 export const SPIN_MS = {
-  normal: 2100,
+  normal: 900,
   reduced: 300,
   auto: 100,
   battle: 450,
@@ -93,7 +96,7 @@ export function doSpin(duration: number): void {
     beep(320, 0.5, 0.09)
     setTimeout(() => beep(196, 0.8, 0.08), 90)
     land(idx, pick)
-  }, duration + 60)
+  }, duration + SPIN_SETTLE_MS)
 }
 
 export function land(idx: number, pick: string | null, immediate = false): void {

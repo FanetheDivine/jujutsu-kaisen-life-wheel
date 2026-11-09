@@ -6,6 +6,7 @@ import {
   resolveBattle,
   restart,
   skipStage,
+  SPIN_MS,
   startAuto,
 } from '../src/game/actions'
 import { applyAction, expandAfter } from '../src/game/flow'
@@ -298,7 +299,7 @@ describe('落地停留与推进', () => {
         wheelIndex: held,
         highlight: null,
         spinning: true,
-        spinDuration: 2100,
+        spinDuration: SPIN_MS.normal,
       })
 
       await vi.advanceTimersByTimeAsync(2300)
