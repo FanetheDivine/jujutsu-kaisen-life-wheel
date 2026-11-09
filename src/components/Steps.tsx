@@ -17,10 +17,12 @@ export function Steps() {
     <>
       <div className="mb-3 flex flex-wrap gap-[3px]" aria-label="人生轮次进度">
         {stages.map((stage, index) => {
-          const record = records.find((item) => item.stageId === stage.id)
           const entry = history.find(
             (item) => item.stageIndex === index && item.stageId === stage.id,
           )
+          const record = entry
+            ? records[entry.recordIndex]
+            : records.find((item) => item.stageId === stage.id)
           const clickable = !!entry && !!record && !record.skipped
           const active = clickable && review?.recordIndex === entry.recordIndex
           const className = cn(
