@@ -50,6 +50,17 @@ export function distribution(idx: number): DistributionView {
   return { stage, w: weights, pct, bpct, notes, total }
 }
 
+/** 某轮已落地并停留（或终局）时，展示该轮抽取前的冻结概率，保留刚抽中的扇区。 */
+export function heldDistribution(idx: number): DistributionView | null {
+  const state = getState()
+  if (!(state.pendingNext != null || state.done)) return null
+  const entry = state.history[state.history.length - 1]
+  if (!entry || entry.stageIndex !== idx) return null
+  const record = state.records[entry.recordIndex]
+  if (!record || record.skipped || record.stageId !== entry.stageId) return null
+  return entry.distribution
+}
+
 /** 找到下一个可抽轮次；record=true 时将跨过的轮次补记为「此轮不存」。 */
 export function nextActiveIndex(from: number, record: boolean): number {
   const { stages, results, records } = getState()

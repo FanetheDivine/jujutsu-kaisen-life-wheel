@@ -9,7 +9,7 @@ import {
   restoreCheckpoint,
 } from './history'
 import { createBaseFlow } from './registry'
-import { distribution, nextActiveIndex } from './selectors'
+import { distribution, heldDistribution, nextActiveIndex } from './selectors'
 import type { Weights } from './types'
 import { distributionArcs, rotationForOption } from './wheel'
 
@@ -241,8 +241,9 @@ export function startAuto(): void {
   doSpin(SPIN_MS.auto)
 }
 
-function aimAtPick(stageIndex: number, pick: string): void {
-  const target = rotationForOption(getState().rot, distributionArcs(distribution(stageIndex)), pick)
+function aimAtPick(stageIndex: number, pick: string, fromRotation: number): void {
+  const dist = heldDistribution(stageIndex) || distribution(stageIndex)
+  const target = rotationForOption(fromRotation, distributionArcs(dist), pick)
   gameStore.setState({
     spinDuration: MANUAL_SNAP_MS,
     ...(target == null ? {} : { rot: target }),
@@ -253,7 +254,11 @@ function aimAtPick(stageIndex: number, pick: string): void {
  * 把某次已抽取轮次替换为指定结果。
  * 先恢复该轮抽取前快照，再走正常落地流程；该轮及其后的旧记录全部作废。
  */
-export function rewriteRecord(recordIndex: number, pick: string): boolean {
+export function rewriteRecord(
+  recordIndex: number,
+  pick: string,
+  fromRotation: number = getState().rot,
+): boolean {
   const state = getState()
   if (state.spinning || state.auto) return false
 
@@ -269,7 +274,7 @@ export function rewriteRecord(recordIndex: number, pick: string): boolean {
 
   if (!restoreCheckpoint(checkpoint)) return false
   land(checkpoint.stageIndex, pick)
-  aimAtPick(checkpoint.stageIndex, pick)
+  aimAtPick(checkpoint.stageIndex, pick, fromRotation)
   beep(480, 0.18, 0.06)
   return true
 }
@@ -278,21 +283,21 @@ export function rewriteRecord(recordIndex: number, pick: string): boolean {
  * 手转转盘的唯一入口：回看时改写该轮，否则改写当前轮；
  * 结果没有变化时返回 false，不修改任何状态。
  */
-export function manualPick(pick: string): boolean {
+export function manualPick(pick: string, fromRotation: number = getState().rot): boolean {
   const state = getState()
   if (state.spinning || state.auto) return false
 
-  if (state.review) return rewriteRecord(state.review.recordIndex, pick)
+  if (state.review) return rewriteRecord(state.review.recordIndex, pick, fromRotation)
 
-  const stageIndex = state.wheelIndex
+  const stageIndex = state.i
   const stage = state.stages[stageIndex]
   if (!stage || !stage.options.some((option) => option.id === pick)) return false
 
   const recordIndex = recordIndexForStage(stage.id)
-  if (recordIndex >= 0) return rewriteRecord(recordIndex, pick)
+  if (recordIndex >= 0) return rewriteRecord(recordIndex, pick, fromRotation)
 
   land(stageIndex, pick)
-  aimAtPick(stageIndex, pick)
+  aimAtPick(stageIndex, pick, fromRotation)
   beep(480, 0.18, 0.06)
   return true
 }

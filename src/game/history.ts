@@ -6,6 +6,7 @@ import type {
   GameViewSnapshot,
   HistoryCheckpoint,
   HistoryReview,
+  LifeRecord,
 } from './types'
 import { distributionArcs, rotationForOption } from './wheel'
 
@@ -70,8 +71,10 @@ export function checkpointForRecord(recordIndex: number): HistoryCheckpoint | nu
 }
 
 /** 某轮最近一次实际抽取在命运帖中的位置；跳过或未抽取返回 -1。 */
-export function recordIndexForStage(stageId: string): number {
-  const records = getState().records
+export function recordIndexForStage(
+  stageId: string,
+  records: readonly LifeRecord[] = getState().records,
+): number {
   for (let index = records.length - 1; index >= 0; index--) {
     const record = records[index]
     if (!record.skipped && record.stageId === stageId) return index

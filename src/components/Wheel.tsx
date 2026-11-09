@@ -6,16 +6,18 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { advance, MANUAL_SNAP_MS, manualPick, spinNow } from '../game/actions'
-import { closeHistoryReview } from '../game/history'
-import { distribution } from '../game/selectors'
+import { closeHistoryReview, recordIndexForStage } from '../game/history'
+import { distribution, heldDistribution } from '../game/selectors'
 import {
   angleDelta,
   distributionArcs,
   mod360,
+  nearestEquivalentRotation,
   optionAtAngle,
   rotationForOption,
 } from '../game/wheel'
 import { cn } from '../lib/cn'
+import { gameStore } from '../store/gameStore'
 import { useGameStore } from '../store/useGameStore'
 import styles from './Wheel.module.css'
 
@@ -61,21 +63,19 @@ export function Wheel() {
   const dragRef = useRef<DragState | null>(null)
   const [dragging, setDragging] = useState(false)
   const [previewId, setPreviewId] = useState<string | null>(null)
-  const dist = review ? review.checkpoint.distribution : distribution(index)
+  const suppressClickRef = useRef(false)
+  const held = review ? null : heldDistribution(index)
+  const dist = review ? review.checkpoint.distribution : held || distribution(index)
   const arcs = distributionArcs(dist)
   const previewOption = previewId
     ? arcs.find((arc) => arc.option.id === previewId)?.option || null
     : null
-  let currentValue = review ? review.originalValue : null
-  if (!review) {
-    for (let cursor = records.length - 1; cursor >= 0; cursor--) {
-      const record = records[cursor]
-      if (!record.skipped && record.stageId === dist.stage.id) {
-        currentValue = record.value
-        break
-      }
-    }
-  }
+  const currentRecordIndex = recordIndexForStage(dist.stage.id, records)
+  const currentValue = review
+    ? review.originalValue
+    : currentRecordIndex >= 0
+      ? records[currentRecordIndex].value
+      : null
 
   useEffect(() => {
     const wheel = wheelRef.current
@@ -91,11 +91,17 @@ export function Wheel() {
     wheel.style.transform = `rotate(${angle}deg)`
   }
 
-  const restoreRotation = (): void => {
-    applyRotation(rotation, RESTORE_MS)
+  const restoreRotation = (visualRotation: number): void => {
+    const settled = nearestEquivalentRotation(rotation, visualRotation)
+    gameStore.setState({ rot: settled, spinDuration: RESTORE_MS })
+    applyRotation(settled, RESTORE_MS)
   }
 
   const activate = (): void => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false
+      return
+    }
     if (reviewing) closeHistoryReview()
     else if (holding) advance()
     else spinNow()
@@ -154,27 +160,34 @@ export function Wheel() {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
     setPreviewId(null)
+    if (drag.moved) {
+      suppressClickRef.current = true
+      setTimeout(() => {
+        suppressClickRef.current = false
+      }, 0)
+    }
     if (!commit || !drag.moved) {
-      restoreRotation()
+      restoreRotation(drag.rotation)
       return
     }
 
     const pick = optionAtAngle(arcs, mod360(-drag.rotation))?.option.id || null
     if (!pick) {
-      restoreRotation()
+      restoreRotation(drag.rotation)
       return
     }
     const target = rotationForOption(drag.rotation, arcs, pick)
     if (target != null) applyRotation(target, MANUAL_SNAP_MS)
-    if (!manualPick(pick)) restoreRotation()
+    if (!manualPick(pick, drag.rotation)) restoreRotation(drag.rotation)
   }
 
   const onLostPointerCapture = (): void => {
-    if (!dragRef.current) return
+    const drag = dragRef.current
+    if (!drag) return
     dragRef.current = null
     setDragging(false)
     setPreviewId(null)
-    restoreRotation()
+    restoreRotation(drag.rotation)
   }
 
   const point = (angle: number, radius: number): [number, number] => [
@@ -193,7 +206,7 @@ export function Wheel() {
             'block size-full overflow-visible select-none',
             locked ? 'cursor-default' : dragging ? 'cursor-grabbing' : 'cursor-grab',
           )}
-          style={{ touchAction: 'none' }}
+          style={{ touchAction: 'pan-y' }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={(event) => finishDrag(event, true)}
@@ -292,7 +305,11 @@ export function Wheel() {
           </g>
         </svg>
         {dragging ? (
-          <div className="pointer-events-none absolute inset-x-2 bottom-1 flex justify-center">
+          <div
+            role="status"
+            aria-live="polite"
+            className="pointer-events-none absolute inset-x-2 bottom-1 flex justify-center"
+          >
             <span className="rounded-full border border-line bg-surface/95 px-2.5 py-1 text-center text-[10.5px] leading-[1.4] tracking-[0.04em] text-ink-soft shadow-card">
               {previewOption
                 ? `松手${previewOption.id === currentValue ? '保持原结果' : '改命'} → ${previewOption.s || previewOption.label}`

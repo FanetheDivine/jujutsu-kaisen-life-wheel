@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MANUAL_SNAP_MS, land, manualPick, rewriteRecord } from '../src/game/actions'
+import { skillStageFor } from '../src/game/data'
 import { openHistoryReview } from '../src/game/history'
 import { BY, register } from '../src/game/options'
-import { distribution } from '../src/game/selectors'
+import { distribution, heldDistribution } from '../src/game/selectors'
 import type { Stage, WheelOption } from '../src/game/types'
 import { distributionArcs, mod360, optionAtAngle } from '../src/game/wheel'
 import { createInitialGameState, gameStore } from '../src/store/gameStore'
@@ -100,9 +101,32 @@ describe('当前轮手转', () => {
     expect(manualPick('a2')).toBe(true)
 
     const state = gameStore.getState()
-    const arcs = distributionArcs(distribution(0))
+    const held = heldDistribution(0)
+    if (!held) throw new Error('缺少停留态概率')
+    const arcs = distributionArcs(held)
     expect(optionAtAngle(arcs, mod360(-state.rot))?.option.id).toBe('a2')
     expect(state.spinDuration).toBe(MANUAL_SNAP_MS)
+  })
+
+  it('技能轮落地后仍保留刚抽中的扇区，并能用手转对准新手选', () => {
+    setFlow([skillStageFor(1), stage('next', [option('n1')])])
+    land(0, 'sk_simple')
+
+    expect(distribution(0).pct.sk_simple).toBe(0)
+    const heldBefore = heldDistribution(0)
+    expect(heldBefore?.pct.sk_simple).toBeGreaterThan(0)
+
+    const fromRotation = 360 * 3 + 200
+    expect(manualPick('sk_bind', fromRotation)).toBe(true)
+
+    const state = gameStore.getState()
+    const heldAfter = heldDistribution(0)
+    if (!heldAfter) throw new Error('缺少改写后的停留态概率')
+    expect(heldAfter.pct.sk_bind).toBeGreaterThan(0)
+    expect(Math.abs(state.rot - fromRotation)).toBeLessThanOrEqual(180)
+    expect(optionAtAngle(distributionArcs(heldAfter), mod360(-state.rot))?.option.id).toBe(
+      'sk_bind',
+    )
   })
 })
 

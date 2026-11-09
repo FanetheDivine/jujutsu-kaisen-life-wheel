@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   angleDelta,
   distributionArcs,
+  nearestEquivalentRotation,
   mod360,
   optionAtAngle,
   rotationForOption,
@@ -111,6 +112,17 @@ describe('拖动角度增量', () => {
   it('半圈差保持固定方向，不产生超过半圈的回转', () => {
     expect(Math.abs(angleDelta(0, 180))).toBe(180)
     expect(Math.abs(angleDelta(360, 540))).toBe(180)
+  })
+})
+
+describe('多圈拖动回位', () => {
+  it('保留视觉圈数，只回退不足半圈', () => {
+    expect(nearestEquivalentRotation(0, 370)).toBe(360)
+    expect(nearestEquivalentRotation(0, -370)).toBe(-360)
+    const settled = nearestEquivalentRotation(350, 10)
+    expect(Math.abs(settled - 10)).toBeLessThanOrEqual(180)
+    expect(((settled % 360) + 360) % 360).toBeCloseTo(350)
+    expect(nearestEquivalentRotation(0, -170)).toBe(0)
   })
 })
 

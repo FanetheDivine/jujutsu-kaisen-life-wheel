@@ -66,3 +66,8 @@ export function rotationForOption(
   if (!arc) return null
   return rotationForAngle(fromRot, (arc.a0 + arc.a1) / 2)
 }
+
+/** 返回与 visual 同向、但落在 base 附近一圈以内的等价角度，避免手转多圈后倒转回位。 */
+export function nearestEquivalentRotation(base: number, visual: number): number {
+  return base + Math.round((visual - base) / 360) * 360
+}

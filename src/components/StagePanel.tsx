@@ -3,7 +3,7 @@ import { restart, resolveBattle, skipStage, spinNow, startAuto } from '../game/a
 import { OPPONENT, OPPONENT_NOTE } from '../game/data'
 import { labelOf } from '../game/options'
 import { oppOf } from '../game/rules'
-import { distribution } from '../game/selectors'
+import { distribution, heldDistribution } from '../game/selectors'
 import { gameStore } from '../store/gameStore'
 import { useGameStore } from '../store/useGameStore'
 import { Interference } from './Interference'
@@ -21,7 +21,8 @@ export function StagePanel() {
   const quickBout = useGameStore((state) => state.quickBout)
   const review = useGameStore((state) => state.review)
   const reviewing = review != null
-  const dist = review ? review.checkpoint.distribution : distribution(index)
+  const held = review ? null : heldDistribution(index)
+  const dist = review ? review.checkpoint.distribution : held || distribution(index)
   const stage = dist.stage
   const context = review ? review.checkpoint.results : results
   const battleState = review ? review.checkpoint.battle : battle

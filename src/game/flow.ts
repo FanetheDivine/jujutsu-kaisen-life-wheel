@@ -43,6 +43,7 @@ export function expandAfter(idx: number, stageId: string, pick: string): void {
     const events = EVENT_DEFS.filter((definition) => eraIndex < definition.eraIdx).map(
       makeEventStage,
     )
+    events.forEach(register)
     const at = stages.findIndex((stage) => stage.id === 'battleRounds')
     if (at >= 0 && events.length) {
       gameStore.setState({ stages: [...stages.slice(0, at), ...events, ...stages.slice(at)] })
