@@ -7,6 +7,8 @@ export interface GameStore extends AppState {
   displayIndex: number
   wheelIndex: number
   highlight: string | null
+  /** 落地停留时待进入的轮次；-1 表示没有下一轮（终局），null 表示未停留。 */
+  pendingNext: number | null
   spinDuration: number
   markdown: string
   story: string
@@ -53,6 +55,7 @@ export function createInitialGameState(): GameStore {
     displayIndex: 0,
     wheelIndex: 0,
     highlight: null,
+    pendingNext: null,
     spinDuration: 0,
     markdown: '',
     story: '',

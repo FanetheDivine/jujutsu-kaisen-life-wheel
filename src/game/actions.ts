@@ -23,7 +23,9 @@ export function pickWeighted(weights: Weights): string | null {
 
 export function doSpin(duration: number): void {
   const state = getState()
-  if (state.spinning || state.done || state.i >= state.stages.length) return
+  if (state.spinning || state.done || state.pendingNext != null || state.i >= state.stages.length) {
+    return
+  }
   const idx = state.i
   const dist = distribution(idx)
   const pick = pickWeighted(dist.w)
@@ -125,6 +127,12 @@ export function land(idx: number, pick: string | null, immediate = false): void 
   // 旧实现由行动结算后的 renderStats 同步名称；保持当前回合标签时序。
   syncDerivedNames()
   const next = nextActiveIndex(idx + 1, true)
+  // 真实抽取默认停在结果上，等用户看完后点转盘中心的箭头推进；
+  // 自动连抽与战斗快进保持原来的自动切轮节奏。
+  if (!immediate && !current.auto) {
+    gameStore.setState({ spinning: false, pendingNext: next })
+    return
+  }
   if (next === -1) {
     setTimeout(() => {
       if (getState().gen !== generation) return
@@ -138,7 +146,6 @@ export function land(idx: number, pick: string | null, immediate = false): void 
     gameStore.setState({ spinning: false, displayIndex: next, wheelIndex: next, highlight: null })
     return
   }
-  const delay = current.auto ? 100 : stage.kind === 'atk' ? 460 : 700
   setTimeout(() => {
     if (getState().gen !== generation) return
     gameStore.setState({
@@ -147,12 +154,29 @@ export function land(idx: number, pick: string | null, immediate = false): void 
       wheelIndex: next,
       highlight: null,
     })
-    if (current.auto) {
-      setTimeout(() => {
-        if (getState().gen === generation) doSpin(400)
-      }, 90)
-    }
-  }, delay)
+    setTimeout(() => {
+      if (getState().gen === generation) doSpin(400)
+    }, 90)
+  }, 100)
+}
+
+/** 落地停留后进入下一轮；没有下一轮时收束终局。 */
+export function advance(): void {
+  const state = getState()
+  if (state.spinning || state.done || state.pendingNext == null) return
+  const next = state.pendingNext
+  if (next === -1) {
+    gameStore.setState({ pendingNext: null })
+    finish()
+    return
+  }
+  gameStore.setState({
+    pendingNext: null,
+    i: next,
+    displayIndex: next,
+    wheelIndex: next,
+    highlight: null,
+  })
 }
 
 export function forceLand(idx: number, immediate = false): void {
@@ -165,19 +189,21 @@ export function spinNow(): void {
 
 export function skipStage(): void {
   const state = getState()
-  if (state.spinning || state.done || state.i >= state.stages.length) return
+  if (state.spinning || state.done || state.pendingNext != null || state.i >= state.stages.length) {
+    return
+  }
   gameStore.setState({ auto: false, spinning: true })
   forceLand(state.i)
 }
 
 export function startAuto(): void {
-  if (getState().spinning || getState().done) return
+  if (getState().spinning || getState().done || getState().pendingNext != null) return
   gameStore.setState({ auto: true })
   doSpin(520)
 }
 
 export function resolveBattle(): void {
-  if (getState().spinning || getState().done) return
+  if (getState().spinning || getState().done || getState().pendingNext != null) return
   gameStore.setState({ spinning: true })
   let guard = 0
   while (getState().i < getState().stages.length && guard++ < 60) {
