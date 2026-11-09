@@ -1,8 +1,7 @@
 import { createInitialGameState, gameStore, getState } from '../store/gameStore'
 import { beep } from './audio'
-import { derived, survivalRate, syncDerivedNames } from './derive'
+import { syncDerivedNames } from './derive'
 import { applyAction, expandAfter } from './flow'
-import { buildMarkdown } from './markdown'
 import { createBaseFlow } from './registry'
 import { distribution, nextActiveIndex } from './selectors'
 import type { Weights } from './types'
@@ -251,9 +250,6 @@ export function finish(): void {
   const state = getState()
   if (state.done) return
   gameStore.setState({ done: true, auto: false })
-  const life = derived()
-  const rate = survivalRate()
-  gameStore.setState({ markdown: buildMarkdown(life, rate) })
 }
 
 export function restart(): void {

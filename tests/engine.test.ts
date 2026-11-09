@@ -11,8 +11,7 @@ import {
 import { applyAction, expandAfter } from '../src/game/flow'
 import { enemyActionStage } from '../src/game/data'
 import { derived, syncDerivedNames } from '../src/game/derive'
-import { buildMarkdown } from '../src/game/markdown'
-import { labelOf, register } from '../src/game/options'
+import { register } from '../src/game/options'
 import { BASE_FLOW, resetFlow } from '../src/game/registry'
 import { power } from '../src/game/rules'
 import { distribution, nextActiveIndex } from '../src/game/selectors'
@@ -53,7 +52,6 @@ describe('应用生命周期', () => {
   it('重开恢复手机抽选面板并清空上一人生', () => {
     gameStore.setState({
       mobilePanel: 'ledger',
-      ledgerScroll: { following: false, seenCount: 1 },
       records: [{ stageId: 'era', value: 'e4', skipped: false }],
     })
     vi.stubGlobal('window', { scrollTo: vi.fn() })
@@ -61,7 +59,6 @@ describe('应用生命周期', () => {
       restart()
       expect(gameStore.getState().mobilePanel).toBe('draw')
       expect(gameStore.getState().records).toEqual([])
-      expect(gameStore.getState().ledgerScroll).toEqual({ following: true, seenCount: 0 })
     } finally {
       vi.unstubAllGlobals()
     }
@@ -87,7 +84,7 @@ describe('应用生命周期', () => {
     )
   })
 
-  it('连续立即落地能够抵达终局并生成完整档案', async () => {
+  it('连续立即落地能够抵达终局', async () => {
     vi.useFakeTimers()
     try {
       let guard = 0
@@ -101,11 +98,6 @@ describe('应用生命周期', () => {
       await vi.advanceTimersByTimeAsync(700)
 
       expect(gameStore.getState().done).toBe(true)
-      const markdown = gameStore.getState().markdown
-      expect(markdown).toContain('# 咒术回战 · 抽选人生')
-      expect(markdown).toContain(labelOf(gameStore.getState().results.ending))
-      expect(markdown).not.toContain('请为我写故事')
-      expect(markdown).not.toContain('世界观锚点')
     } finally {
       vi.useRealTimers()
     }
@@ -254,7 +246,7 @@ describe('动态流程与战斗', () => {
   })
 })
 
-describe('派生与档案', () => {
+describe('派生', () => {
   const results = {
     era: 'e0',
     dim_ce: 'dim_ce_A',
@@ -276,21 +268,6 @@ describe('派生与档案', () => {
     syncDerivedNames()
     expect(gameStore.getState().jutsuName).toMatch(/^「.+」$/)
     expect(gameStore.getState().domainName).not.toBe('')
-  })
-
-  it('Markdown 保留版本、六维与经历，不再包含写作章节', () => {
-    gameStore.setState({
-      results,
-      records: [{ stageId: 'era', value: 'e0', skipped: false }],
-    })
-    const markdown = buildMarkdown(derived(), 50)
-
-    expect(markdown).toContain('> 生成器版本：v6.0')
-    expect(markdown).toContain('## 二、六维性能（E–EX）')
-    expect(markdown).toContain('## 六、决战逐回合记录')
-    expect(markdown).toContain('## 十、术式与领域')
-    expect(markdown).not.toContain('请为我写故事')
-    expect(markdown).not.toContain('篇幅 3000–5000 字')
   })
 })
 
@@ -392,7 +369,6 @@ describe('落地停留与推进', () => {
       done: true,
       spinning: false,
     })
-    expect(gameStore.getState().markdown).toContain('# 咒术回战 · 抽选人生')
   })
 
   it('偏好减少动态时下一轮旋转缩短为 300ms', () => {

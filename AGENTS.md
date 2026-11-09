@@ -4,7 +4,7 @@
 
 ## 项目梗概
 
-这是《咒术回战》同人向人生抽选器：数十轮因果轮盘实时改写后续权重，支持动态轮次、事件战、宿傩二番战、终局 Markdown 档案导出，明暗主题自动跟随系统。
+这是《咒术回战》同人向人生抽选器：数十轮因果轮盘实时改写后续权重，支持动态轮次、事件战、宿傩二番战，明暗主题自动跟随系统。
 
 - 技术栈：pnpm、Vite、React 19、严格 TypeScript、Tailwind CSS v4、Zustand、Vitest、ESLint、Prettier、vite-plugin-pwa。
 - 当前玩法版本：`v6.0`。迁移构建工具不等于升级玩法版本。
@@ -19,9 +19,9 @@
 | `src/main.tsx`                 | React 挂载、初始流程、样式和 Service Worker 注册                  |
 | `src/App.tsx`                  | 页面布局与组件组合                                                |
 | `src/components/`              | React 组件、基础 UI 与组件专属 CSS Modules                        |
-| `src/game/`                    | 轮盘配置、因果规则、动态流程、战斗与导出；不得依赖 React          |
+| `src/game/`                    | 轮盘配置、因果规则、动态流程与战斗；不得依赖 React                |
 | `src/store/`                   | Zustand vanilla store 与 React 绑定；界面状态的唯一来源           |
-| `src/lib/`                     | 类名合并、复制与下载等辅助函数                                    |
+| `src/lib/`                     | 类名合并等辅助函数                                                |
 | `src/index.css`                | Tailwind 令牌、明暗主题变量、断点；不新增自定义 `@layer`          |
 | `src/random.ts`                | `mulberry32` 与 `seedOf`，保证相同输入的确定性                    |
 | `public/`                      | PWA 图标和旧地址兼容跳转页，不存放业务逻辑                        |
@@ -50,11 +50,11 @@ pnpm check
 
 ## 修改约束
 
-1. **保持玩法兼容**：除非用户明确要求，不改变界面、概率、规则顺序、动态插轮、战斗结算或导出结构。
+1. **保持玩法兼容**：除非用户明确要求，不改变界面、概率、规则顺序、动态插轮或战斗结算。
 2. **严格类型**：不得用 `ts-nocheck`、`ts-ignore` 或 `any` 规避迁移与修复；优先补全类型模型和运行时收窄。
 3. **测试先行**：变更业务规则前先增加能验证行为的纯逻辑测试。测试不得依赖 React 渲染、`index.html` 或页面 DOM。
 4. **React 与状态约定**：业务状态统一放在 Zustand；组件不得恢复命令式 DOM 模板或在渲染期写 store。可复用样式写成组件并使用 Tailwind，组件专属效果使用同名 CSS Module，不新增自定义 `@layer`。
-5. **版本一致**：玩法变更时同步 `VERSION` / `VERSION_DATE` / `VERSION_NOTE`、页面展示与导出信息；纯工程迁移保留 `v6.0`。
+5. **版本一致**：玩法变更时同步 `VERSION` / `VERSION_DATE` / `VERSION_NOTE` 与页面展示；纯工程迁移保留 `v6.0`。
 6. **旧地址只兼容**：`public/jujutsu-life-wheel.html` 必须保持轻量跳转，不能把旧单文件业务代码加回来。
 7. **相对部署路径**：保持 `base: './'` 和 Manifest 的相对 `start_url` / `scope`，避免破坏 GitHub Pages 子目录部署。
 8. **PWA 缓存边界**：只预缓存同源静态资源，不缓存或代理外部请求。新增本地资源后检查 `dist/manifest.webmanifest`、`dist/sw.js`、图标和预缓存清单，避免重复 URL。
@@ -83,7 +83,7 @@ pnpm check
 | 应用版本 | `package.json` 的 `version` + git 标签 `vX.Y.Z`                      | 每次发布                   |
 | 玩法版本 | `src/game/version.ts` 的 `VERSION` / `VERSION_DATE` / `VERSION_NOTE` | 仅玩法变更（见修改约束 5） |
 
-页面标题旁与导出 Markdown 显示的是玩法版本，不是应用版本，两者不必一致。应用版本按语义化版本升位：新增功能 `minor`、修复 `patch`、破坏性玩法变更 `major`。
+页面标题旁显示的是玩法版本，不是应用版本，两者不必一致。应用版本按语义化版本升位：新增功能 `minor`、修复 `patch`、破坏性玩法变更 `major`。
 
 ### 标准流程
 

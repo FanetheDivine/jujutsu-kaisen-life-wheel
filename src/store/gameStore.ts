@@ -1,6 +1,5 @@
 import { createStore } from 'zustand/vanilla'
 import type { AppState, Stage } from '../game/types'
-import type { ScrollFollowState } from '../lib/scrollFollow'
 
 export interface GameStore extends AppState {
   stages: Stage[]
@@ -10,9 +9,7 @@ export interface GameStore extends AppState {
   /** 落地停留时待进入的轮次；-1 表示没有下一轮（终局），null 表示未停留。 */
   pendingNext: number | null
   spinDuration: number
-  markdown: string
   mobilePanel: 'draw' | 'ledger' | 'stats'
-  ledgerScroll: ScrollFollowState
 }
 
 export function createInitialGameState(): GameStore {
@@ -50,9 +47,7 @@ export function createInitialGameState(): GameStore {
     highlight: null,
     pendingNext: null,
     spinDuration: 0,
-    markdown: '',
     mobilePanel: 'draw',
-    ledgerScroll: { following: true, seenCount: 0 },
   }
 }
 
