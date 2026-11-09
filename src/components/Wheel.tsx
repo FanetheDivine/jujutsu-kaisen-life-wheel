@@ -1,11 +1,11 @@
 import { useEffect, useRef, type KeyboardEvent } from 'react'
 import { advance, spinNow } from '../game/actions'
+import { closeHistoryReview } from '../game/history'
 import { distribution } from '../game/selectors'
+import { distributionArcs, mod360 } from '../game/wheel'
 import { cn } from '../lib/cn'
 import { useGameStore } from '../store/useGameStore'
 import styles from './Wheel.module.css'
-
-const mod360 = (angle: number): number => ((angle % 360) + 360) % 360
 
 export function Wheel() {
   const index = useGameStore((state) => state.wheelIndex)
@@ -13,22 +13,12 @@ export function Wheel() {
   const rotation = useGameStore((state) => state.rot)
   const duration = useGameStore((state) => state.spinDuration)
   const pendingNext = useGameStore((state) => state.pendingNext)
-  const holding = pendingNext != null
+  const review = useGameStore((state) => state.review)
+  const reviewing = review != null
+  const holding = pendingNext != null && !reviewing
   const wheelRef = useRef<SVGGElement>(null)
-  const dist = distribution(index)
-  const items = dist.stage.options.filter((option) => dist.pct[option.id] > 0.05)
-  const sum = items.reduce((total, option) => total + dist.pct[option.id], 0)
-  const { arcs } = items.reduce<{
-    arcs: Array<{ option: (typeof items)[number]; a0: number; a1: number; size: number }>
-    accumulated: number
-  }>(
-    (acc, option) => {
-      const size = (dist.pct[option.id] / sum) * 360
-      const arc = { option, a0: acc.accumulated, a1: acc.accumulated + size, size }
-      return { arcs: [...acc.arcs, arc], accumulated: acc.accumulated + size }
-    },
-    { arcs: [], accumulated: 0 },
-  )
+  const dist = review ? review.checkpoint.distribution : distribution(index)
+  const arcs = distributionArcs(dist)
 
   useEffect(() => {
     const wheel = wheelRef.current
@@ -38,7 +28,8 @@ export function Wheel() {
   }, [duration, rotation])
 
   const activate = (): void => {
-    if (holding) advance()
+    if (reviewing) closeHistoryReview()
+    else if (holding) advance()
     else spinNow()
   }
 
@@ -127,12 +118,16 @@ export function Wheel() {
             className={styles.hubGroup}
             role="button"
             tabIndex={0}
-            aria-label={holding ? '抽下一轮' : '转动转盘'}
+            aria-label={reviewing ? '返回当前命运' : holding ? '抽下一轮' : '转动转盘'}
             onClick={activate}
             onKeyDown={onKeyDown}
           >
             <circle className={styles.hub} cx="200" cy="200" r="42" />
-            {holding ? (
+            {reviewing ? (
+              <text className={styles.hubText} x="200" y="207">
+                回
+              </text>
+            ) : holding ? (
               <path className={styles.advanceArrow} d="M188 200H211M201 189L212 200L201 211" />
             ) : (
               <text className={styles.hubText} x="200" y="207">
@@ -140,7 +135,7 @@ export function Wheel() {
               </text>
             )}
             <text className={styles.hubSub} x="200" y="226">
-              ROUND {String(index + 1).padStart(2, '0')}
+              {reviewing ? 'CURRENT' : `ROUND ${String(index + 1).padStart(2, '0')}`}
             </text>
           </g>
         </svg>
