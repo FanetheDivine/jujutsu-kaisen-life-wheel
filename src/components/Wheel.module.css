@@ -43,6 +43,14 @@
   text-anchor: middle;
   font-family: var(--font-body);
 }
+.advanceArrow {
+  fill: none;
+  stroke: var(--vermillion);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: nudge 1.7s var(--ease-out-quart) infinite;
+}
 .hubGroup {
   cursor: pointer;
   transform-origin: 200px 200px;
@@ -57,6 +65,9 @@
 .hubGroup:hover .hubSub {
   fill: #fff4e8;
 }
+.hubGroup:hover .advanceArrow {
+  stroke: #fff4e8;
+}
 /* 点击也会聚焦 SVG 分组，Chrome 会画出包住整组的矩形焦点框，故一律不显示 */
 .hubGroup:focus {
   outline: none;
@@ -70,11 +81,23 @@
     transform: scale(1.035);
   }
 }
+@keyframes nudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(3px);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .wheel {
     transition-duration: 600ms !important;
   }
   .hubGroup {
+    animation: none;
+  }
+  .advanceArrow {
     animation: none;
   }
 }
