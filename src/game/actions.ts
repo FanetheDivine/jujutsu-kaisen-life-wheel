@@ -160,7 +160,7 @@ export function land(idx: number, pick: string | null, immediate = false): void 
   }, 100)
 }
 
-/** 落地停留后进入下一轮；没有下一轮时收束终局。 */
+/** 落地停留后推进下一轮并立即开抽；没有下一轮时收束终局。 */
 export function advance(): void {
   const state = getState()
   if (state.spinning || state.done || state.pendingNext == null) return
@@ -177,14 +177,24 @@ export function advance(): void {
     wheelIndex: next,
     highlight: null,
   })
+  doSpin(preferredSpinDuration())
 }
 
 export function forceLand(idx: number, immediate = false): void {
   land(idx, pickWeighted(distribution(idx).w), immediate)
 }
 
+/** 普通转动与箭头推进共用时长；尊重系统的减少动态偏好。 */
+function preferredSpinDuration(): number {
+  const reduced =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  return reduced ? 600 : 4200
+}
+
 export function spinNow(): void {
-  doSpin(window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 600 : 4200)
+  doSpin(preferredSpinDuration())
 }
 
 export function skipStage(): void {
