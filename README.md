@@ -1,6 +1,6 @@
 # 咒术回战 · 抽选人生转盘
 
-转动数十轮因果轮盘，抽出一个属于《咒术回战》世界观的“人生”，并把结果导出成 Markdown 档案，交给任意 AI 写成同人短篇。
+转动数十轮因果轮盘，抽出一个属于《咒术回战》世界观的“人生”，并导出成一份完整的 Markdown 人生档案。
 
 项目使用 **React 19 + 严格 TypeScript + Tailwind CSS v4 + Zustand** 构建界面与状态层，由 **Vite + vite-plugin-pwa** 打包为可直接部署到静态托管服务的可安装 PWA；运行时不依赖后端。
 
@@ -54,16 +54,14 @@
 
 1. **查看检定**：六维、综合战力与生还倾向。
 2. **生成名称**：按本次结果确定性生成术式名、领域名与称号，同一结果始终同名。
-3. **导出 Markdown**：复制或下载完整档案，包含逐段经历、逐回合战斗、一番战与二番战、终局和写作指令。
-4. **接入自己的模型**：页面内填写 Base URL、Model 与 API Key，调用 OpenAI 兼容 `/chat/completions`，支持流式输出与中断。
-   API 配置只保存到本机 `localStorage` 的 `jjkwheel` 项；系统提示词可以自行修改。
+3. **导出 Markdown**：复制或下载完整档案，包含逐段经历、逐回合战斗、一番战与二番战、终局与身后名。
 
 ## 交互与无障碍
 
 - 点击转盘中央的「呪」，或聚焦后按 Enter / 空格，即可转动。
 - 支持跳过此轮、一键抽完余生、跳过战斗演出与重新开始。
-- 重新开始会作废在途旋转、自动连抽与流式输出。
-- WebAudio 咔哒声默认关闭；支持浅色 / 深色主题与 `prefers-reduced-motion`。
+- 重新开始会作废在途旋转与自动连抽。
+- WebAudio 咔哒声默认关闭；明暗主题自动跟随系统 `prefers-color-scheme`，并支持 `prefers-reduced-motion`。
 
 ## 本地开发
 
@@ -77,7 +75,7 @@ pnpm install
 pnpm dev
 ```
 
-打开 Vite 输出的本地地址。开发服务器仅用于本地开发，不是模型 API 代理。
+打开 Vite 输出的本地地址。开发服务器仅用于本地开发。
 
 ### 常用命令
 
@@ -95,14 +93,13 @@ pnpm dev
 | `pnpm test:watch`   | 监听模式运行测试                                    |
 | `pnpm check`        | 依次执行格式、类型、lint、测试、生产构建与产物校验  |
 
-现有测试只渲染或断言纯逻辑与生产产物，不依赖 React 组件或页面 DOM：覆盖确定性随机工具、概率与因果干涉、动态插轮、战斗结算、派生命名、Markdown 与 API 响应解析，以及生产 PWA 产物的结构校验和异常负例。
+现有测试只渲染或断言纯逻辑与生产产物，不依赖 React 组件或页面 DOM：覆盖确定性随机工具、概率与因果干涉、动态插轮、战斗结算、派生命名、Markdown 档案，以及生产 PWA 产物的结构校验和异常负例。
 
 ## PWA 与离线
 
 - 通过 HTTPS 或 localhost 打开后，浏览器可将其安装到桌面或主屏幕，以独立窗口运行。
 - 首次成功联网打开后，Service Worker 会预缓存构建后的 HTML、JavaScript、CSS、Manifest、图标与兼容跳转页，此后可离线打开应用外壳并抽选人生。
 - 使用自动更新策略；新版本 Service Worker 安装后会接替旧版本。
-- **离线不代表离线生成 AI 故事**：模型请求仍直接访问用户填写的 API 地址，不被 Service Worker 缓存，也不经过项目代理。
 - 直接双击源码 HTML 不会获得 Service Worker；请使用 `pnpm preview` 或 HTTPS 部署验证 PWA。
 
 ## 构建与 GitHub Pages
@@ -132,8 +129,7 @@ src/
     actions.ts                 旋转、落地、跳过、结算、终局与重开动作
     selectors.ts               当前概率分布与动态轮次推进
     derive.ts                  确定性派生命名与生还率
-    markdown.ts                完整档案与系统提示词
-    generate.ts                OpenAI 兼容请求与流式生成
+    markdown.ts                完整人生档案
     types.ts                   业务类型定义
     version.ts                 玩法版本与导出信息
   store/                       Zustand vanilla store 与 React 绑定
