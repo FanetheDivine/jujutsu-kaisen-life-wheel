@@ -21,6 +21,8 @@
 }
 .sector text {
   fill: var(--wheel-text);
+  /* 扇区描边会继承给文字，0.7 的线宽会把白字描成灰紫色，这里显式清掉 */
+  stroke: none;
   font-family: var(--font-body);
   font-weight: 500;
 }
