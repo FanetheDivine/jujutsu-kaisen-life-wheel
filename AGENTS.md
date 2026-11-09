@@ -71,3 +71,61 @@ pnpm check
 - 确认 PR 检查通过后把链接交给用户验收；若没有远端检查，应确认 PR 可合并且如实说明，不得虚构检查记录。
 - 用户验收通过后才 squash 合并；若验收不通过，回到需求或 checklist，而不是直接合并。遇到 `MergePullRequest` 权限错误时先核对目标是否为 origin，不擅自改投 upstream 或绕过权限。
 - 合并后在主工作区执行 `git pull --ff-only origin main`，再删除功能 worktree、origin 远程分支与本地分支。
+
+## 发布（Release）
+
+发布 = 在 `main` 上创建 `vX.Y.Z` 标签并推送，由 `.github/workflows/deploy.yml` 自动检查、构建并发布到 GitHub Pages（https://fanethedivine.github.io/jujutsu-kaisen-life-wheel/）。`main` 的普通推送只跑 CI，**不会**部署；标签才是部署触发器。
+
+### 两套版本号
+
+| 版本     | 位置                                                                 | 何时改                     |
+| -------- | -------------------------------------------------------------------- | -------------------------- |
+| 应用版本 | `package.json` 的 `version` + git 标签 `vX.Y.Z`                      | 每次发布                   |
+| 玩法版本 | `src/game/version.ts` 的 `VERSION` / `VERSION_DATE` / `VERSION_NOTE` | 仅玩法变更（见修改约束 5） |
+
+页面标题旁与导出 Markdown 显示的是玩法版本，不是应用版本，两者不必一致。应用版本按语义化版本升位：新增功能 `minor`、修复 `patch`、破坏性玩法变更 `major`。
+
+### 标准流程
+
+```sh
+# 1. 确认起点：main 干净、与 origin/main 一致、最新 CI 通过
+git status --porcelain                                  # 应无输出
+git fetch origin --prune
+git rev-list --left-right --count origin/main...HEAD    # 应为 0  0
+
+# 2. 升版本：自动改 package.json、生成提交 "X.Y.Z"、打附注标签 vX.Y.Z
+pnpm version patch                                      # 或 minor / major
+
+# 3. 推送提交与标签（标签触发部署）
+git push origin main --follow-tags
+
+# 4. 观察部署
+gh run list --repo FanetheDivine/jujutsu-kaisen-life-wheel --limit 5
+gh run watch <run-id> --repo FanetheDivine/jujutsu-kaisen-life-wheel --exit-status
+```
+
+- 发布前先确认所有功能 PR 已合并到 `main` 且 CI 通过，因为 Deploy 构建的就是标签指向的那个提交。
+- 必须用 `--follow-tags`（或 `git push origin main vX.Y.Z`）显式推标签；只推 `main` 不会部署。
+- `pnpm version` 自己会提交并打标签，不要再手动补提交或补标签。
+- Deploy 工作流内部会跑完整 `pnpm check`，不通过就不会发布。
+
+### 部署后验证
+
+```sh
+base=https://fanethedivine.github.io/jujutsu-kaisen-life-wheel
+curl -sSI "$base/" | head -1                                    # 200
+curl -sS "$base/" | grep -oE 'assets/index-[^"]+\.js'           # 资源名应与本次构建一致
+curl -sS -o /dev/null -w '%{http_code}\n' "$base/manifest.webmanifest"
+curl -sS -o /dev/null -w '%{http_code}\n' "$base/sw.js"
+curl -sS -o /dev/null -w '%{http_code}\n' "$base/jujutsu-life-wheel.html"   # 旧地址跳转页
+```
+
+- 用 `gh api repos/FanetheDivine/jujutsu-kaisen-life-wheel/actions/runs/<run-id> --jq .head_sha` 核对部署的正是本次提交。
+- Pages 首次启用需在 Settings → Pages 把 Source 设为 GitHub Actions；当前仓库已是 `build_type: workflow`。
+
+### 重发与回滚
+
+- 只重发当前 `main`（不动版本号）：`gh workflow run deploy.yml --repo FanetheDivine/jujutsu-kaisen-life-wheel`。
+- 标签已存在时无法在同一提交重复创建；需要重发用 `workflow_dispatch`，或先删远程标签再重建：`git push origin --delete vX.Y.Z`。
+- 回滚线上：从目标提交重新打标签并强制推送标签（`git tag -f vX.Y.Z <sha>` + `git push origin -f vX.Y.Z`），不要改写 `main` 历史。
+- 发布只走「标签 → Deploy 工作流」；不要用 `sync.sh` 直推 `main` 代替发布。
