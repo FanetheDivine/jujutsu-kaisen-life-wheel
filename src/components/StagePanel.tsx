@@ -69,7 +69,7 @@ export function StagePanel() {
           {done ? '你的一生已经写完' : stage.name}
         </h2>
         <p className="mx-auto max-w-[48ch] text-[12.5px] text-ink-soft">
-          {done ? '向下取走 Markdown 人生档案。' : description}
+          {done ? '此生的因果已经闭合。' : description}
         </p>
       </div>
       {done ? null : <OptionList dist={dist} />}
