@@ -1,6 +1,7 @@
 import { Header } from './components/Header'
 import { Ledger } from './components/Ledger'
 import { MobileNav } from './components/MobileNav'
+import { ReviewBar } from './components/ReviewBar'
 import { StagePanel } from './components/StagePanel'
 import { StatsPanel } from './components/StatsPanel'
 import { Steps } from './components/Steps'
@@ -28,6 +29,7 @@ export function App() {
               className={cn('min-w-0', panel !== 'draw' && 'hidden mid:block')}
             >
               <Steps />
+              <ReviewBar />
               <Wheel />
               <StagePanel />
             </section>

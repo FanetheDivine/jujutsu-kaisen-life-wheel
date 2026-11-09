@@ -1,7 +1,7 @@
 import { gameStore, getState } from '../store/gameStore'
-import type { DistributionNote, LifeRecord, WeightChange, Weights } from './types'
+import type { DistributionNote, DistributionView, LifeRecord, WeightChange, Weights } from './types'
 
-export function distribution(idx: number) {
+export function distribution(idx: number): DistributionView {
   const { stages, results: context } = getState()
   const stage = stages[idx]
   const base: Weights = {}
@@ -48,6 +48,17 @@ export function distribution(idx: number) {
   })
   notes.forEach((note) => note.changes.forEach((change) => (change.pp = (change.d / total) * 100)))
   return { stage, w: weights, pct, bpct, notes, total }
+}
+
+/** 某轮已落地并停留（或终局）时，展示该轮抽取前的冻结概率，保留刚抽中的扇区。 */
+export function heldDistribution(idx: number): DistributionView | null {
+  const state = getState()
+  if (!(state.pendingNext != null || state.done)) return null
+  const entry = state.history[state.history.length - 1]
+  if (!entry || entry.stageIndex !== idx) return null
+  const record = state.records[entry.recordIndex]
+  if (!record || record.skipped || record.stageId !== entry.stageId) return null
+  return entry.distribution
 }
 
 /** 找到下一个可抽轮次；record=true 时将跨过的轮次补记为「此轮不存」。 */

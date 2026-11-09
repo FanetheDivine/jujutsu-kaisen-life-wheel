@@ -2,9 +2,16 @@ import { createInitialGameState, gameStore, getState } from '../store/gameStore'
 import { beep } from './audio'
 import { syncDerivedNames } from './derive'
 import { applyAction, expandAfter } from './flow'
+import {
+  captureCheckpoint,
+  checkpointForRecord,
+  recordIndexForStage,
+  restoreCheckpoint,
+} from './history'
 import { createBaseFlow } from './registry'
-import { distribution, nextActiveIndex } from './selectors'
+import { distribution, heldDistribution, nextActiveIndex } from './selectors'
 import type { Weights } from './types'
+import { distributionArcs, rotationForOption } from './wheel'
 
 const mod360 = (angle: number): number => ((angle % 360) + 360) % 360
 
@@ -19,6 +26,9 @@ export const SPIN_MS = {
   battle: 450,
   chain: 200,
 } as const
+
+/** 手转松手后吸附到扇区中心的时长。 */
+export const MANUAL_SNAP_MS = 320
 
 /** 按转动时长选择圈数：时长越短圈数越少，避免高速旋转糊成一片。 */
 export function spinTurns(duration: number): number {
@@ -133,6 +143,7 @@ export function land(idx: number, pick: string | null, immediate = false): void 
   }
 
   gameStore.setState({ wheelIndex: idx, highlight: pick })
+  captureCheckpoint(idx, distribution(idx))
   expandAfter(idx, stage.id, pick)
   const current = getState()
   const results = { ...current.results, [stage.id]: pick }
@@ -228,6 +239,67 @@ export function startAuto(): void {
   if (getState().spinning || getState().done || getState().pendingNext != null) return
   gameStore.setState({ auto: true })
   doSpin(SPIN_MS.auto)
+}
+
+function aimAtPick(stageIndex: number, pick: string, fromRotation: number): void {
+  const dist = heldDistribution(stageIndex) || distribution(stageIndex)
+  const target = rotationForOption(fromRotation, distributionArcs(dist), pick)
+  gameStore.setState({
+    spinDuration: MANUAL_SNAP_MS,
+    ...(target == null ? {} : { rot: target }),
+  })
+}
+
+/**
+ * 把某次已抽取轮次替换为指定结果。
+ * 先恢复该轮抽取前快照，再走正常落地流程；该轮及其后的旧记录全部作废。
+ */
+export function rewriteRecord(
+  recordIndex: number,
+  pick: string,
+  fromRotation: number = getState().rot,
+): boolean {
+  const state = getState()
+  if (state.spinning || state.auto) return false
+
+  const checkpoint = checkpointForRecord(recordIndex)
+  if (!checkpoint) return false
+  const stage = checkpoint.stages[checkpoint.stageIndex]
+  if (!stage || stage.id !== checkpoint.stageId) return false
+  if (!stage.options.some((option) => option.id === pick)) return false
+
+  const record = state.records[recordIndex]
+  if (!record || record.skipped || record.stageId !== checkpoint.stageId) return false
+  if (record.value === pick) return false
+
+  if (!restoreCheckpoint(checkpoint)) return false
+  land(checkpoint.stageIndex, pick)
+  aimAtPick(checkpoint.stageIndex, pick, fromRotation)
+  beep(480, 0.18, 0.06)
+  return true
+}
+
+/**
+ * 手转转盘的唯一入口：回看时改写该轮，否则改写当前轮；
+ * 结果没有变化时返回 false，不修改任何状态。
+ */
+export function manualPick(pick: string, fromRotation: number = getState().rot): boolean {
+  const state = getState()
+  if (state.spinning || state.auto) return false
+
+  if (state.review) return rewriteRecord(state.review.recordIndex, pick, fromRotation)
+
+  const stageIndex = state.i
+  const stage = state.stages[stageIndex]
+  if (!stage || !stage.options.some((option) => option.id === pick)) return false
+
+  const recordIndex = recordIndexForStage(stage.id)
+  if (recordIndex >= 0) return rewriteRecord(recordIndex, pick, fromRotation)
+
+  land(stageIndex, pick)
+  aimAtPick(stageIndex, pick, fromRotation)
+  beep(480, 0.18, 0.06)
+  return true
 }
 
 export function resolveBattle(): void {

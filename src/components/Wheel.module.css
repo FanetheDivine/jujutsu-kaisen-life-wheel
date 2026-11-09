@@ -16,6 +16,9 @@
 .sector.hl {
   fill: var(--hl);
 }
+.sector.preview {
+  fill: var(--indigo);
+}
 .sector text {
   fill: var(--wheel-text);
   font-family: var(--font-body);
@@ -23,6 +26,9 @@
 }
 .sector.hl text {
   fill: var(--hl-text);
+}
+.sector.preview text {
+  fill: var(--paper);
 }
 .hub {
   fill: var(--surface);
@@ -93,6 +99,9 @@
 @media (prefers-reduced-motion: reduce) {
   .wheel {
     transition-duration: 300ms !important;
+  }
+  .wheel.dragging {
+    transition: none !important;
   }
   .hubGroup {
     animation: none;

@@ -1,5 +1,5 @@
 import { createStore } from 'zustand/vanilla'
-import type { AppState, Stage } from '../game/types'
+import type { AppState, HistoryCheckpoint, HistoryReview, Stage } from '../game/types'
 
 export interface GameStore extends AppState {
   stages: Stage[]
@@ -10,6 +10,8 @@ export interface GameStore extends AppState {
   pendingNext: number | null
   spinDuration: number
   mobilePanel: 'draw' | 'ledger' | 'stats'
+  history: HistoryCheckpoint[]
+  review: HistoryReview | null
 }
 
 export function createInitialGameState(): GameStore {
@@ -48,6 +50,8 @@ export function createInitialGameState(): GameStore {
     pendingNext: null,
     spinDuration: 0,
     mobilePanel: 'draw',
+    history: [],
+    review: null,
   }
 }
 
