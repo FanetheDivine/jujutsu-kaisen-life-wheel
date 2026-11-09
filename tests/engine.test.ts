@@ -24,7 +24,12 @@ function resetEngine(): void {
   resetFlow()
 }
 
-beforeEach(resetEngine)
+beforeEach(() => {
+  resetEngine()
+  // Node 测试环境没有 requestAnimationFrame；旋转用例只校验状态，不驱动帧循环。
+  vi.stubGlobal('requestAnimationFrame', () => 0)
+  vi.stubGlobal('cancelAnimationFrame', () => {})
+})
 
 describe('应用生命周期', () => {
   it('手机面板切换不影响当前人生和正在进行的抽选', () => {
@@ -290,7 +295,7 @@ describe('派生与档案', () => {
 })
 
 describe('落地停留与推进', () => {
-  it('真实抽取落地后停在结果，点击推进才切到下一轮', async () => {
+  it('真实抽取落地后停在结果，点箭头直接开始下一轮转动', async () => {
     vi.useFakeTimers()
     try {
       forceLand(gameStore.getState().i)
@@ -308,34 +313,65 @@ describe('落地停留与推进', () => {
       expect(gameStore.getState().displayIndex).toBe(0)
 
       advance()
+
       expect(gameStore.getState()).toMatchObject({
         pendingNext: null,
         i: held,
         displayIndex: held,
         wheelIndex: held,
         highlight: null,
+        spinning: true,
+        spinDuration: 2100,
       })
+
+      await vi.advanceTimersByTimeAsync(2300)
+
+      const nextLanded = gameStore.getState()
+      expect(nextLanded).toMatchObject({ i: held, spinning: false })
+      expect(nextLanded.highlight).toBeTruthy()
+      expect(nextLanded.pendingNext).not.toBeNull()
     } finally {
+      vi.clearAllTimers()
       vi.useRealTimers()
     }
   })
 
-  it('重复推进只切换一轮，没有停留时推进无效', () => {
-    forceLand(gameStore.getState().i)
-    const held = gameStore.getState().pendingNext
+  it('重复点箭头只推进一轮，旋转中推进无效', () => {
+    vi.useFakeTimers()
+    try {
+      forceLand(gameStore.getState().i)
+      const held = gameStore.getState().pendingNext
 
-    advance()
+      advance()
+      advance()
+
+      expect(gameStore.getState()).toMatchObject({
+        pendingNext: null,
+        i: held,
+        displayIndex: held,
+        wheelIndex: held,
+        highlight: null,
+        spinning: true,
+      })
+    } finally {
+      vi.clearAllTimers()
+      vi.useRealTimers()
+    }
+  })
+
+  it('没有停留时推进无效', () => {
     advance()
 
     expect(gameStore.getState()).toMatchObject({
       pendingNext: null,
-      displayIndex: held,
-      wheelIndex: held,
-      highlight: null,
+      i: 0,
+      displayIndex: 0,
+      wheelIndex: 0,
+      spinning: false,
     })
   })
 
-  it('最后一轮落地后停留，推进后才进入终局', () => {
+  it('最后一轮落地后停留，点箭头直接进入终局', () => {
     const last = gameStore.getState().stages.length - 1
     gameStore.setState({ i: last, displayIndex: last, wheelIndex: last })
 
@@ -351,8 +387,27 @@ describe('落地停留与推进', () => {
 
     advance()
 
-    expect(gameStore.getState()).toMatchObject({ pendingNext: null, done: true })
+    expect(gameStore.getState()).toMatchObject({
+      pendingNext: null,
+      done: true,
+      spinning: false,
+    })
     expect(gameStore.getState().markdown).toContain('# 咒术回战 · 抽选人生')
+  })
+
+  it('偏好减少动态时下一轮旋转缩短为 300ms', () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) })
+    try {
+      forceLand(gameStore.getState().i)
+      advance()
+
+      expect(gameStore.getState()).toMatchObject({ spinning: true, spinDuration: 300 })
+    } finally {
+      vi.clearAllTimers()
+      vi.unstubAllGlobals()
+      vi.useRealTimers()
+    }
   })
 
   it('自动模式不停留，落地后直接排入下一轮', () => {
@@ -385,28 +440,35 @@ describe('落地停留与推进', () => {
     })
   })
 
-  it('跳过此轮立即落地并停留，推进后才切到下一轮', () => {
-    skipStage()
+  it('跳过此轮立即落地并停留，点箭头直接开始下一轮转动', () => {
+    vi.useFakeTimers()
+    try {
+      skipStage()
 
-    const landed = gameStore.getState()
-    expect(landed.pendingNext).toBeGreaterThan(0)
-    expect(landed.highlight).toBeTruthy()
-    expect(landed.i).toBe(0)
-    expect(landed.displayIndex).toBe(0)
-    expect(landed.spinning).toBe(false)
-    expect(landed.records).toEqual([
-      { stageId: landed.stages[0].id, value: landed.highlight, skipped: false },
-    ])
+      const landed = gameStore.getState()
+      expect(landed.pendingNext).toBeGreaterThan(0)
+      expect(landed.highlight).toBeTruthy()
+      expect(landed.i).toBe(0)
+      expect(landed.displayIndex).toBe(0)
+      expect(landed.spinning).toBe(false)
+      expect(landed.records).toEqual([
+        { stageId: landed.stages[0].id, value: landed.highlight, skipped: false },
+      ])
 
-    const held = landed.pendingNext
-    advance()
+      const held = landed.pendingNext
+      advance()
 
-    expect(gameStore.getState()).toMatchObject({
-      pendingNext: null,
-      displayIndex: held,
-      wheelIndex: held,
-      spinning: false,
-    })
+      expect(gameStore.getState()).toMatchObject({
+        pendingNext: null,
+        i: held,
+        displayIndex: held,
+        wheelIndex: held,
+        spinning: true,
+      })
+    } finally {
+      vi.clearAllTimers()
+      vi.useRealTimers()
+    }
   })
 
   it('停留期间转动、跳过、自动与战斗快进全部无效', () => {

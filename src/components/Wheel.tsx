@@ -127,7 +127,7 @@ export function Wheel() {
             className={styles.hubGroup}
             role="button"
             tabIndex={0}
-            aria-label={holding ? '进入下一轮' : '转动转盘'}
+            aria-label={holding ? '抽下一轮' : '转动转盘'}
             onClick={activate}
             onKeyDown={onKeyDown}
           >
