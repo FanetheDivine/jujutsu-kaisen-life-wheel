@@ -12,7 +12,6 @@ export function Ledger() {
   const stages = useGameStore((state) => state.stages)
   const results = useGameStore((state) => state.results)
   const { output, onScroll, followLatest, following, unread } = useScrollFollow<HTMLDivElement>(
-    'ledgerScroll',
     records.length,
   )
 

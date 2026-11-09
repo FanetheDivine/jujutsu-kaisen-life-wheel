@@ -1,7 +1,5 @@
 @import 'tailwindcss';
 
-@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
-
 @theme inline {
   --color-paper: var(--paper);
   --color-paper-2: var(--paper-2);
@@ -29,6 +27,8 @@
 }
 
 :root {
+  color-scheme: light;
+
   --font-display: 'Songti SC', 'Noto Serif SC', 'Source Han Serif SC', 'STSong', serif;
   --font-body:
     'PingFang SC', 'Noto Sans SC', 'Hiragino Sans GB', system-ui, -apple-system, sans-serif;
@@ -36,9 +36,7 @@
   --r-sm: 6px;
   --r-md: 12px;
   --r-lg: 18px;
-}
 
-html[data-theme='light'] {
   --paper: #f3ede1;
   --paper-2: #e9e1d0;
   --surface: #fbf7ee;
@@ -58,22 +56,26 @@ html[data-theme='light'] {
   --shadow: 0 1px 0 rgba(27, 23, 32, 0.05), 0 12px 30px -18px rgba(27, 23, 32, 0.35);
 }
 
-html[data-theme='dark'] {
-  --paper: #141018;
-  --paper-2: #1c1622;
-  --surface: #211a29;
-  --ink: #f0e9f5;
-  --ink-soft: #b8adcb;
-  --ink-faint: #8478a0;
-  --line: #3a2f49;
-  --vermillion: #e0573f;
-  --indigo: #7fa6e8;
-  --gold: #d8ae58;
-  --sector-a: #2e2539;
-  --sector-b: #211a29;
-  --sector-line: #4a3b5c;
-  --hl: #b8361f;
-  --hl-text: #fff2e8;
-  --grid: rgba(127, 166, 232, 0.07);
-  --shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 18px 40px -22px #000;
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --paper: #141018;
+    --paper-2: #1c1622;
+    --surface: #211a29;
+    --ink: #f0e9f5;
+    --ink-soft: #b8adcb;
+    --ink-faint: #8478a0;
+    --line: #3a2f49;
+    --vermillion: #e0573f;
+    --indigo: #7fa6e8;
+    --gold: #d8ae58;
+    --sector-a: #2e2539;
+    --sector-b: #211a29;
+    --sector-line: #4a3b5c;
+    --hl: #b8361f;
+    --hl-text: #fff2e8;
+    --grid: rgba(127, 166, 232, 0.07);
+    --shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 18px 40px -22px #000;
+  }
 }
