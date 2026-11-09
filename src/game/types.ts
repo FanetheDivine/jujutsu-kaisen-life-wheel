@@ -126,7 +126,6 @@ export interface AppState {
   done: boolean
   gen: number
   raf: number
-  ctrl: AbortController | null
   battle: BattleState
   jutsuName: string
   domainName: string

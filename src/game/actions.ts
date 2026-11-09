@@ -2,7 +2,7 @@ import { createInitialGameState, gameStore, getState } from '../store/gameStore'
 import { beep } from './audio'
 import { derived, survivalRate, syncDerivedNames } from './derive'
 import { applyAction, expandAfter } from './flow'
-import { buildMarkdown, SYSTEM_PROMPT } from './markdown'
+import { buildMarkdown } from './markdown'
 import { createBaseFlow } from './registry'
 import { distribution, nextActiveIndex } from './selectors'
 import type { Weights } from './types'
@@ -201,27 +201,19 @@ export function finish(): void {
   gameStore.setState({ done: true, auto: false })
   const life = derived()
   const rate = survivalRate()
-  gameStore.setState({ markdown: buildMarkdown(life, rate), systemPrompt: SYSTEM_PROMPT })
+  gameStore.setState({ markdown: buildMarkdown(life, rate) })
 }
 
 export function restart(): void {
   const state = getState()
   const generation = state.gen + 1
   if (state.raf) cancelAnimationFrame(state.raf)
-  if (state.ctrl) {
-    try {
-      state.ctrl.abort()
-    } catch {
-      // 过期请求或不完整数据可以安全忽略。
-    }
-  }
-  const { sound, quickBout, systemPrompt } = state
+  const { sound, quickBout } = state
   gameStore.setState({
     ...createInitialGameState(),
     gen: generation,
     sound,
     quickBout,
-    systemPrompt,
     // 一次发布完整初始状态，避免订阅者观察到 stages 为空的中间帧。
     stages: createBaseFlow(),
   })

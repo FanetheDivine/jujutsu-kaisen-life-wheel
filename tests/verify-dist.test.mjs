@@ -111,13 +111,13 @@ describe('生产产物校验', () => {
     expect(() => verifyDist(distDir)).toThrowError(/重复.*index\.html/)
   })
 
-  it('拒绝把模型 API 或缺失文件加入预缓存', () => {
+  it('拒绝把外部 URL 加入预缓存', () => {
     const entries = [
       'index.html',
       'jujutsu-life-wheel.html',
       'manifest.webmanifest',
       ...iconNames,
-      'https://api.example.com/chat/completions',
+      'https://example.com/data.json',
     ].map((url) => ({ url, revision: 'test' }))
     writeFileSync(path.join(distDir, 'sw.js'), serviceWorker(entries))
 

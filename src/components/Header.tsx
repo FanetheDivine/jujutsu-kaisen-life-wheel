@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { restart } from '../game/actions'
 import { beep } from '../game/audio'
 import { VERSION, VERSION_DATE } from '../game/version'
@@ -8,18 +7,11 @@ import { Button } from './ui/Button'
 
 export function Header() {
   const sound = useGameStore((state) => state.sound)
-  const [dark, setDark] = useState(() => document.documentElement.dataset.theme === 'dark')
 
   const toggleSound = (): void => {
     const next = !sound
     gameStore.setState({ sound: next })
     if (next) beep(880, 0.16, 0.06)
-  }
-
-  const toggleTheme = (): void => {
-    const next = !dark
-    document.documentElement.dataset.theme = next ? 'dark' : 'light'
-    setDark(next)
   }
 
   return (
@@ -46,9 +38,6 @@ export function Header() {
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" aria-pressed={sound} onClick={toggleSound}>
           音效：{sound ? '开' : '关'}
-        </Button>
-        <Button size="sm" onClick={toggleTheme}>
-          夜行性：{dark ? '开' : '关'}
         </Button>
         <Button size="sm" variant="ghost" onClick={restart}>
           重抽一生
