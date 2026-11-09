@@ -56,7 +56,7 @@ export function StagePanel() {
     <>
       <p className="mt-0.5 text-center text-[11.5px] tracking-[0.08em] text-ink-faint">
         {pendingNext != null
-          ? '本轮结果已定 —— 点中央的「→」进入下一轮'
+          ? '本轮结果已定 —— 点中央的「→」直接抽下一轮'
           : '点中央的「呪」即可转动 —— 扇区面积就是当下的真实几率'}
       </p>
       <div className="mx-0 mt-3 mb-1 text-center">
