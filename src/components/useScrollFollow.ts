@@ -3,31 +3,28 @@ import { isNearBottom, nextScrollFollowState } from '../lib/scrollFollow'
 import { gameStore } from '../store/gameStore'
 import { useGameStore } from '../store/useGameStore'
 
-type ScrollKey = 'ledgerScroll' | 'storyScroll'
-
-function contentCount(key: ScrollKey): number {
-  const state = gameStore.getState()
-  return key === 'ledgerScroll' ? state.records.length : state.story.length
+function contentCount(): number {
+  return gameStore.getState().records.length
 }
 
-export function useScrollFollow<T extends HTMLElement>(key: ScrollKey, content: number | string) {
+export function useScrollFollow<T extends HTMLElement>(content: number) {
   const output = useRef<T>(null)
-  const view = useGameStore((state) => state[key])
+  const view = useGameStore((state) => state.ledgerScroll)
   const generation = useGameStore((state) => state.gen)
 
   const onScroll = (): void => {
     const element = output.current
     if (!element?.getClientRects().length) return
-    const previous = gameStore.getState()[key]
+    const previous = gameStore.getState().ledgerScroll
     const following = isNearBottom(element)
-    const seenCount = following ? contentCount(key) : previous.seenCount
+    const seenCount = following ? contentCount() : previous.seenCount
     if (following !== previous.following || seenCount !== previous.seenCount) {
-      gameStore.setState({ [key]: { following, seenCount } })
+      gameStore.setState({ ledgerScroll: { following, seenCount } })
     }
   }
 
   const followLatest = (): void => {
-    gameStore.setState({ [key]: { following: true, seenCount: contentCount(key) } })
+    gameStore.setState({ ledgerScroll: { following: true, seenCount: contentCount() } })
     const element = output.current
     if (element) {
       element.focus({ preventScroll: true })
@@ -38,11 +35,11 @@ export function useScrollFollow<T extends HTMLElement>(key: ScrollKey, content: 
   useLayoutEffect(() => {
     const element = output.current
     if (!element?.getClientRects().length) return
-    const previous = gameStore.getState()[key]
-    const next = nextScrollFollowState(previous, contentCount(key))
+    const previous = gameStore.getState().ledgerScroll
+    const next = nextScrollFollowState(previous, contentCount())
     if (next.following) element.scrollTop = element.scrollHeight
-    if (next !== previous) gameStore.setState({ [key]: next })
-  }, [content, generation, key, view.following])
+    if (next !== previous) gameStore.setState({ ledgerScroll: next })
+  }, [content, generation, view.following])
 
   useEffect(() => {
     const element = output.current
@@ -50,21 +47,21 @@ export function useScrollFollow<T extends HTMLElement>(key: ScrollKey, content: 
     // CSS-hidden mobile panels report zero size; restore following when they reappear.
     const observer = new ResizeObserver(() => {
       if (!element.getClientRects().length) return
-      const previous = gameStore.getState()[key]
+      const previous = gameStore.getState().ledgerScroll
       if (!previous.following) return
       element.scrollTop = element.scrollHeight
-      const next = nextScrollFollowState(previous, contentCount(key))
-      if (next !== previous) gameStore.setState({ [key]: next })
+      const next = nextScrollFollowState(previous, contentCount())
+      if (next !== previous) gameStore.setState({ ledgerScroll: next })
     })
     observer.observe(element)
     return () => observer.disconnect()
-  }, [key])
+  }, [])
 
   return {
     output,
     onScroll,
     followLatest,
     following: view.following,
-    unread: Math.max(0, (typeof content === 'number' ? content : content.length) - view.seenCount),
+    unread: Math.max(0, content - view.seenCount),
   }
 }

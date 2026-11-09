@@ -1,34 +1,11 @@
 import { getState } from '../store/gameStore'
-import {
-  BOUT_EVENTS,
-  EVENT_DEFS,
-  OPPONENT,
-  OPPONENT_NOTE,
-  boutFoe,
-  chosenSkills,
-  deadAt,
-} from './data'
+import { BOUT_EVENTS, EVENT_DEFS, OPPONENT, boutFoe, deadAt } from './data'
 import { BY, labelOf } from './options'
 import { DIMS, RNK, rankOfScore } from './ranks'
 import { stageById } from './registry'
 import { domLabel, oppOf, power } from './rules'
 import { VERSION, VERSION_DATE, VERSION_NOTE } from './version'
 import type { BattleLog, DerivedLife, Stage } from './types'
-
-export const SYSTEM_PROMPT = [
-  '你是精通《咒术回战》世界观的同人小说家。请严格遵循以下设定，不得擅自篡改：',
-  '1. 咒力源于人类的负面情感；咒灵由人的恐惧与憎恶凝聚而生，被祓除即消散。',
-  '2. 术式为先天刻印在肉体上的能力，无法后天习得；天与咒缚是以术式为代价换来超人肉体。',
-  '3. 领域展开＝以大量咒力具现化「生得领域」并附加必中效果；简易领域不附必中，但可抵消必中。',
-  '4. 反转术式＝负负得正产生「正的咒力」用于治愈；黑闪＝咒力与物理冲击在 0.000001 秒误差内的碰撞，命中后威力翻倍并可追击。',
-  '5. 咒物、受肉体、天元与其结界体系、死灭回游规则（结界内玩家、点数、以 100 点追加规则）不得违背。',
-  '5c. 两面宿傩的「原身形态」＝四只手、两张脸的真正肉体，可再次展开领域「伏魔御廚子」；若档案中出现二番战，请如实描写他撕开受肉躯壳的过程。',
-  '5b. 束缚＝以「给自己加锁」换取同等增幅，代价与收益必须同时成立；术式与领域请严格使用档案中给出的具体名称（如十种影法术、无量空处、伏魔御廚子、诛伏赐死），不要改名或替换。',
-  '6. 时间线严格对齐档案中的「入场时期」与「逐段经历」，不得让该时点的死者复活、不得提前发生未发生之事。',
-  '7. 禁止改写档案给出的结局、决战结果与战斗记录——你要写的是「这个人如何走到这个结局」。',
-  '7b. 立场必须前后一致：档案中的「决战阵营」与「逐段经历」里的站队结果不得互相矛盾（例如决战阵营为高专方，就不能写成他在新宿站在宿傩一侧）。',
-  '写作要求：中文；第二人称「你」；3000–5000 字；按「逐段经历」与「决战逐回合记录」分节并加小标题；战斗要逐回合写出双方出招；文风冷峻克制，偶有黑色幽默；不要输出设定说明或点评，只输出故事本身。',
-].join('\n')
 
 export function buildMarkdown(d: DerivedLife, sv: number): string {
   const c = getState().results
@@ -181,21 +158,6 @@ export function buildMarkdown(d: DerivedLife, sv: number): string {
     }
     boutRows += s + '\n'
   })
-  const opp = OPPONENT[oppId] || '你的命运本身'
-  const bondLine =
-    c.bond === 'b13'
-      ? '关键人物：**无。你孤身一人**，请写出这份孤独如何把人推向既定结局'
-      : '必须出现的关键人物：**' +
-        labelOf(c.bond) +
-        '**（决战对手：' +
-        opp +
-        ' —— ' +
-        (OPPONENT_NOTE[oppId] || '') +
-        '）'
-  const sk = chosenSkills(c)
-    .map((id) => BY[id] && BY[id].label)
-    .filter(Boolean)
-
   return (
     '# 咒术回战 · 抽选人生档案\n\n' +
     '> 生成时间：' +
@@ -266,7 +228,7 @@ export function buildMarkdown(d: DerivedLife, sv: number): string {
     sv.toFixed(0) +
     '%\n\n' +
     (legacyRow ? '## 九、身后名\n\n' + legacyRow + '\n\n' : '') +
-    '## 十、术式与领域（具体名称）\n\n- 生得术式：**' +
+    '## 十、术式与领域\n\n- 生得术式：**' +
     (c.technique ? labelOf(c.technique) : '无术式') +
     '**' +
     (c.techNature ? '（性质：' + labelOf(c.techNature) + '）' : '') +
@@ -279,64 +241,6 @@ export function buildMarkdown(d: DerivedLife, sv: number): string {
     '\n' +
     '- 称号：**' +
     d.title +
-    '**\n\n' +
-    '## 十一、世界观锚点（写作时请严格遵守）\n\n' +
-    '- 2006：怀玉·玉折（星浆体护送事件）／0 卷（乙骨忧太与祈本里香，百鬼夜行前夜）\n' +
-    '- 2007.12.24：百鬼夜行，羂索在东京与京都放出上千只咒灵\n' +
-    '- 2018 年春：虎杖悠仁吞下宿傩手指，进入东京咒术高专\n' +
-    '- 2018.10.31：涩谷事变，五条悟被封印于狱门疆\n' +
-    '- 2018.11：死灭回游开始（羂索发动），结界内玩家以点数博弈，追加规则需 100 点\n' +
-    '- 2018.12.24：人外魔境新宿决战，五条悟与两面宿傩的最终对决\n' +
-    '- 2019：终战之后，残存者重建咒术界\n' +
-    '- 咒力＝负面情感的运用；咒灵＝恐惧的具现；术式＝先天刻印；领域展开＝具现化生得领域＋必中\n' +
-    '- 天与咒缚＝以术式换取肉体；反转术式＝负负得正；黑闪＝0.000001 秒误差的咒力碰撞\n' +
-    '- 简易领域＝0.5 秒展开、不附必中但可抵消必中；极之番＝术式的最大输出\n' +
-    '- 天元＝不死术式与日本结界的核心；受肉体＝千年咒术师的灵魂借尸苏醒\n\n' +
-    '## 十二、请为我写故事\n\n请以以上档案为主角设定，创作一篇《咒术回战》同人短篇：\n\n' +
-    '- 视点：第二人称「你」，从「' +
-    labelOf(c.era) +
-    '」入场，入场年龄 ' +
-    labelOf(c.age) +
-    '，性格' +
-    labelOf(c.personality) +
-    '，运气 ' +
-    labelOf(c.luck) +
-    '\n' +
-    '- 必须按「逐段经历」的顺序逐段推进，每段独立成节\n' +
-    (boutRows
-      ? '- 「各场战斗」里的每一场都要单独成节，按其中的逐回合记录写出双方出招（招式名请照抄），并写出该场之后的成长或失去\n'
-      : '') +
-    '- 决战一节必须严格按「决战逐回合记录」逐回合写出双方出招（招式名请照抄），落在：**' +
-    labelOf(c.duel) +
-    '**（对手：' +
-    opp +
-    '）' +
-    (c.sukunaTrue === 'su_yes'
-      ? '；宿傩会在一番战后解放「原身形态」（四臂、双面），二番战必须单独成节'
-      : '') +
-    '\n' +
-    '- 最终结局必须是：**' +
-    labelOf(c.ending) +
-    '**\n' +
-    '- ' +
-    bondLine +
-    '\n' +
-    '- 必须体现六维（' +
-    DIMS.map((dd) => dd.n + '：' + (c[dd.k] ? RNK(c, dd.k) : '—')).join('、') +
-    '）、术式（' +
-    (c.technique ? labelOf(c.technique) : '无') +
-    '）、领域（' +
-    (c.domain === 'd0' ? '未展开' : '「' + domLabel(c) + '」') +
-    '）、等级（' +
-    labelOf(c.grade) +
-    '）、阵营（' +
-    labelOf(c.faction) +
-    '）、技能（' +
-    (sk.join('、') || '无') +
-    '）\n' +
-    '- 立场必须前后一致：最终**' +
-    labelOf(c.battleSide) +
-    '**，所以「逐段经历」里的站队（尤其是新宿决战）必须与此一致，不得写成矛盾的两套立场\n' +
-    '- 篇幅 3000–5000 字，文风冷峻克制，不要输出设定说明，只写故事\n'
+    '**\n'
   )
 }
