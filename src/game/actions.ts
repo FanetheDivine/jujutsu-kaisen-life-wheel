@@ -9,6 +9,22 @@ import type { Weights } from './types'
 
 const mod360 = (angle: number): number => ((angle % 360) + 360) % 360
 
+/** 各类转动时长（毫秒）：手动、减少动效、自动连抽、战斗快进、自动接续。 */
+export const SPIN_MS = {
+  normal: 2100,
+  reduced: 300,
+  auto: 100,
+  battle: 450,
+  chain: 200,
+} as const
+
+/** 按转动时长选择圈数：时长越短圈数越少，避免高速旋转糊成一片。 */
+export function spinTurns(duration: number): number {
+  if (duration >= 1200) return 3 + Math.floor(Math.random() * 3)
+  if (duration >= 400) return 2
+  return 1
+}
+
 export function pickWeighted(weights: Weights): string | null {
   const ids = Object.keys(weights).filter((key) => weights[key] > 0)
   if (!ids.length) return null
@@ -44,7 +60,7 @@ export function doSpin(duration: number): void {
   arc = arc || { a0: 0, size: 360 / Math.max(items.length, 1) }
   const margin = Math.min(arc.size * 0.3, 5)
   const theta = arc.a0 + margin + Math.random() * Math.max(arc.size - margin * 2, 0.2)
-  const turns = duration < 1200 ? 2 : 4 + Math.floor(Math.random() * 3)
+  const turns = spinTurns(duration)
   const target = state.rot + turns * 360 + mod360(mod360(-theta) - mod360(state.rot))
   const generation = state.gen
   const startedAt = performance.now()
@@ -155,7 +171,7 @@ export function land(idx: number, pick: string | null, immediate = false): void 
       highlight: null,
     })
     setTimeout(() => {
-      if (getState().gen === generation) doSpin(400)
+      if (getState().gen === generation) doSpin(SPIN_MS.chain)
     }, 90)
   }, 100)
 }
@@ -190,7 +206,7 @@ function preferredSpinDuration(): number {
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  return reduced ? 600 : 4200
+  return reduced ? SPIN_MS.reduced : SPIN_MS.normal
 }
 
 export function spinNow(): void {
@@ -209,7 +225,7 @@ export function skipStage(): void {
 export function startAuto(): void {
   if (getState().spinning || getState().done || getState().pendingNext != null) return
   gameStore.setState({ auto: true })
-  doSpin(520)
+  doSpin(SPIN_MS.auto)
 }
 
 export function resolveBattle(): void {
@@ -228,7 +244,7 @@ export function resolveBattle(): void {
   const state = getState()
   const id = state.i < state.stages.length ? state.stages[state.i].id : ''
   gameStore.setState({ spinning: false })
-  if (id === 'duel' || id === 'duel2') doSpin(900)
+  if (id === 'duel' || id === 'duel2') doSpin(SPIN_MS.battle)
 }
 
 export function finish(): void {

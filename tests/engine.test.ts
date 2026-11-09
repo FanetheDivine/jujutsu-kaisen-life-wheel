@@ -321,10 +321,10 @@ describe('落地停留与推进', () => {
         wheelIndex: held,
         highlight: null,
         spinning: true,
-        spinDuration: 4200,
+        spinDuration: 2100,
       })
 
-      await vi.advanceTimersByTimeAsync(4300)
+      await vi.advanceTimersByTimeAsync(2300)
 
       const nextLanded = gameStore.getState()
       expect(nextLanded).toMatchObject({ i: held, spinning: false })
@@ -395,14 +395,14 @@ describe('落地停留与推进', () => {
     expect(gameStore.getState().markdown).toContain('# 咒术回战 · 抽选人生')
   })
 
-  it('偏好减少动态时下一轮旋转缩短为 600ms', () => {
+  it('偏好减少动态时下一轮旋转缩短为 300ms', () => {
     vi.useFakeTimers()
     vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) })
     try {
       forceLand(gameStore.getState().i)
       advance()
 
-      expect(gameStore.getState()).toMatchObject({ spinning: true, spinDuration: 600 })
+      expect(gameStore.getState()).toMatchObject({ spinning: true, spinDuration: 300 })
     } finally {
       vi.clearAllTimers()
       vi.unstubAllGlobals()
