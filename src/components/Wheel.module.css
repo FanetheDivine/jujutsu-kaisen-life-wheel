@@ -16,12 +16,16 @@
 .sector.hl {
   fill: var(--hl);
 }
+.sector.preview {
+  fill: var(--indigo);
+}
 .sector text {
   fill: var(--ink);
   font-family: var(--font-body);
   font-weight: 500;
 }
-.sector.hl text {
+.sector.hl text,
+.sector.preview text {
   fill: var(--hl-text);
 }
 .hub {

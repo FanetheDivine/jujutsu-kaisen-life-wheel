@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { distributionArcs, mod360, optionAtAngle, rotationForOption } from '../src/game/wheel'
+import {
+  angleDelta,
+  distributionArcs,
+  mod360,
+  optionAtAngle,
+  rotationForOption,
+} from '../src/game/wheel'
 import type { DistributionView, Stage, WheelOption } from '../src/game/types'
 
 function option(id: string, base = 1): WheelOption {
@@ -91,6 +97,20 @@ describe('指针角度与选项映射', () => {
     expect(visible.map((arc) => arc.option.id)).toEqual(['a'])
     expect(optionAtAngle(visible, 180)?.option.id).toBe('a')
     expect(rotationForOption(0, visible, 'hidden')).toBeNull()
+  })
+})
+
+describe('拖动角度增量', () => {
+  it('跨过 0 度时仍取最短方向', () => {
+    expect(angleDelta(350, 10)).toBe(20)
+    expect(angleDelta(10, 350)).toBe(-20)
+    expect(angleDelta(0, 90)).toBe(90)
+    expect(angleDelta(90, 0)).toBe(-90)
+  })
+
+  it('半圈差保持固定方向，不产生超过半圈的回转', () => {
+    expect(Math.abs(angleDelta(0, 180))).toBe(180)
+    expect(Math.abs(angleDelta(360, 540))).toBe(180)
   })
 })
 

@@ -1,11 +1,48 @@
-import { useEffect, useRef, type KeyboardEvent } from 'react'
-import { advance, spinNow } from '../game/actions'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
+import { advance, MANUAL_SNAP_MS, manualPick, spinNow } from '../game/actions'
 import { closeHistoryReview } from '../game/history'
 import { distribution } from '../game/selectors'
-import { distributionArcs, mod360 } from '../game/wheel'
+import {
+  angleDelta,
+  distributionArcs,
+  mod360,
+  optionAtAngle,
+  rotationForOption,
+} from '../game/wheel'
 import { cn } from '../lib/cn'
 import { useGameStore } from '../store/useGameStore'
 import styles from './Wheel.module.css'
+
+type DragState = {
+  pointerId: number
+  startRotation: number
+  rotation: number
+  lastAngle: number
+  moved: boolean
+}
+
+const DRAG_THRESHOLD_DEG = 10
+const RESTORE_MS = 260
+
+function pointerAt(
+  svg: SVGSVGElement,
+  clientX: number,
+  clientY: number,
+): { angle: number; radius: number } {
+  const rect = svg.getBoundingClientRect()
+  const dx = ((clientX - rect.left - rect.width / 2) / Math.max(rect.width, 1)) * 400
+  const dy = ((clientY - rect.top - rect.height / 2) / Math.max(rect.height, 1)) * 400
+  return {
+    angle: mod360((Math.atan2(dy, dx) * 180) / Math.PI),
+    radius: Math.hypot(dx, dy),
+  }
+}
 
 export function Wheel() {
   const index = useGameStore((state) => state.wheelIndex)
@@ -14,11 +51,31 @@ export function Wheel() {
   const duration = useGameStore((state) => state.spinDuration)
   const pendingNext = useGameStore((state) => state.pendingNext)
   const review = useGameStore((state) => state.review)
+  const records = useGameStore((state) => state.records)
+  const spinning = useGameStore((state) => state.spinning)
+  const auto = useGameStore((state) => state.auto)
   const reviewing = review != null
   const holding = pendingNext != null && !reviewing
+  const locked = spinning || auto
   const wheelRef = useRef<SVGGElement>(null)
+  const dragRef = useRef<DragState | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const [previewId, setPreviewId] = useState<string | null>(null)
   const dist = review ? review.checkpoint.distribution : distribution(index)
   const arcs = distributionArcs(dist)
+  const previewOption = previewId
+    ? arcs.find((arc) => arc.option.id === previewId)?.option || null
+    : null
+  let currentValue = review ? review.originalValue : null
+  if (!review) {
+    for (let cursor = records.length - 1; cursor >= 0; cursor--) {
+      const record = records[cursor]
+      if (!record.skipped && record.stageId === dist.stage.id) {
+        currentValue = record.value
+        break
+      }
+    }
+  }
 
   useEffect(() => {
     const wheel = wheelRef.current
@@ -26,6 +83,17 @@ export function Wheel() {
     wheel.style.setProperty('--dur', `${duration}ms`)
     wheel.style.transform = `rotate(${rotation}deg)`
   }, [duration, rotation])
+
+  const applyRotation = (angle: number, milliseconds: number): void => {
+    const wheel = wheelRef.current
+    if (!wheel) return
+    wheel.style.setProperty('--dur', `${milliseconds}ms`)
+    wheel.style.transform = `rotate(${angle}deg)`
+  }
+
+  const restoreRotation = (): void => {
+    applyRotation(rotation, RESTORE_MS)
+  }
 
   const activate = (): void => {
     if (reviewing) closeHistoryReview()
@@ -40,6 +108,75 @@ export function Wheel() {
     }
   }
 
+  const onPointerDown = (event: ReactPointerEvent<SVGSVGElement>): void => {
+    if (locked || !event.isPrimary || event.button !== 0) return
+    const { angle, radius } = pointerAt(event.currentTarget, event.clientX, event.clientY)
+    if (radius < 52 || radius > 200) return
+    event.preventDefault()
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId)
+    } catch {
+      // 指针已失效时继续无意义，交给 pointercancel 清理。
+    }
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startRotation: rotation,
+      rotation,
+      lastAngle: angle,
+      moved: false,
+    }
+    setDragging(true)
+    setPreviewId(null)
+    applyRotation(rotation, 0)
+  }
+
+  const onPointerMove = (event: ReactPointerEvent<SVGSVGElement>): void => {
+    const drag = dragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    event.preventDefault()
+    const { angle } = pointerAt(event.currentTarget, event.clientX, event.clientY)
+    drag.rotation += angleDelta(drag.lastAngle, angle)
+    drag.lastAngle = angle
+    if (Math.abs(drag.rotation - drag.startRotation) >= DRAG_THRESHOLD_DEG) {
+      drag.moved = true
+    }
+    applyRotation(drag.rotation, 0)
+    setPreviewId(optionAtAngle(arcs, mod360(-drag.rotation))?.option.id || null)
+  }
+
+  const finishDrag = (event: ReactPointerEvent<SVGSVGElement>, commit: boolean): void => {
+    const drag = dragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+
+    dragRef.current = null
+    setDragging(false)
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+    setPreviewId(null)
+    if (!commit || !drag.moved) {
+      restoreRotation()
+      return
+    }
+
+    const pick = optionAtAngle(arcs, mod360(-drag.rotation))?.option.id || null
+    if (!pick) {
+      restoreRotation()
+      return
+    }
+    const target = rotationForOption(drag.rotation, arcs, pick)
+    if (target != null) applyRotation(target, MANUAL_SNAP_MS)
+    if (!manualPick(pick)) restoreRotation()
+  }
+
+  const onLostPointerCapture = (): void => {
+    if (!dragRef.current) return
+    dragRef.current = null
+    setDragging(false)
+    setPreviewId(null)
+    restoreRotation()
+  }
+
   const point = (angle: number, radius: number): [number, number] => [
     200 + radius * Math.cos((angle * Math.PI) / 180),
     200 + radius * Math.sin((angle * Math.PI) / 180),
@@ -48,7 +185,21 @@ export function Wheel() {
   return (
     <div className="grid place-items-center py-0.5">
       <div className="relative aspect-square w-[min(100%,420px)]">
-        <svg viewBox="0 0 400 400" className="block size-full overflow-visible">
+        <svg
+          viewBox="0 0 400 400"
+          role="group"
+          aria-label="命运转盘：点中央按钮随机转动，拖动圆环可手动改命"
+          className={cn(
+            'block size-full overflow-visible select-none',
+            locked ? 'cursor-default' : dragging ? 'cursor-grabbing' : 'cursor-grab',
+          )}
+          style={{ touchAction: 'none' }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={(event) => finishDrag(event, true)}
+          onPointerCancel={(event) => finishDrag(event, false)}
+          onLostPointerCapture={onLostPointerCapture}
+        >
           <defs>
             <radialGradient id="glow" cx="50%" cy="50%" r="50%">
               <stop offset="0%" stopColor="var(--vermillion)" stopOpacity=".16" />
@@ -86,6 +237,7 @@ export function Wheel() {
                     styles.sector,
                     index % 2 ? styles.b : styles.a,
                     highlight === arc.option.id && styles.hl,
+                    previewId === arc.option.id && styles.preview,
                   )}
                 >
                   <path
@@ -139,6 +291,15 @@ export function Wheel() {
             </text>
           </g>
         </svg>
+        {dragging ? (
+          <div className="pointer-events-none absolute inset-x-2 bottom-1 flex justify-center">
+            <span className="rounded-full border border-line bg-surface/95 px-2.5 py-1 text-center text-[10.5px] leading-[1.4] tracking-[0.04em] text-ink-soft shadow-card">
+              {previewOption
+                ? `松手${previewOption.id === currentValue ? '保持原结果' : '改命'} → ${previewOption.s || previewOption.label}`
+                : '松手回到原位'}
+            </span>
+          </div>
+        ) : null}
       </div>
     </div>
   )

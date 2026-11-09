@@ -12,6 +12,11 @@ export function mod360(angle: number): number {
   return ((angle % 360) + 360) % 360
 }
 
+/** 两个角度之间的最短有符号差，范围 [-180, 180)。 */
+export function angleDelta(from: number, to: number): number {
+  return ((to - from + 540) % 360) - 180
+}
+
 /**
  * 把当前概率分布切成转盘扇区。
  * 与旧的转盘绘制 / 落点逻辑一致：只画概率大于 0.05% 的选项，再把可见概率归一化到整圈。
