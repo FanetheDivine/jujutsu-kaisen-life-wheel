@@ -5,7 +5,6 @@ import { ReviewBar } from './components/ReviewBar'
 import { StagePanel } from './components/StagePanel'
 import { StatsPanel } from './components/StatsPanel'
 import { Steps } from './components/Steps'
-import { Card } from './components/ui/Card'
 import { Wheel } from './components/Wheel'
 import { cn } from './lib/cn'
 import { useGameStore } from './store/useGameStore'
@@ -14,12 +13,12 @@ export function App() {
   const panel = useGameStore((state) => state.mobilePanel)
 
   return (
-    <div className="min-h-screen bg-paper font-body text-[15px] leading-[1.65] text-ink antialiased tabular-nums [overflow-wrap:anywhere]">
+    <div className="flex min-h-dvh flex-col bg-paper font-body text-[15px] leading-[1.65] text-ink antialiased tabular-nums [overflow-wrap:anywhere]">
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-0 bg-[linear-gradient(to_right,var(--grid)_1px,transparent_1px),linear-gradient(to_bottom,var(--grid)_1px,transparent_1px)] bg-[size:34px_34px]"
       />
-      <div className="relative z-1 mx-auto max-w-[1300px] px-3 pt-5 pb-[max(32px,env(safe-area-inset-bottom))] sm:px-[clamp(16px,3vw,32px)] mid:pt-[clamp(18px,3vw,40px)] mid:pb-20">
+      <div className="relative z-1 mx-auto flex w-full max-w-[1300px] flex-1 flex-col px-3 pt-5 pb-[max(32px,env(safe-area-inset-bottom))] sm:px-[clamp(16px,3vw,32px)] mid:pt-[clamp(18px,3vw,40px)] mid:pb-20">
         <Header />
         <MobileNav />
         <main className="grid grid-cols-1 items-start gap-[clamp(14px,2.4vw,28px)] mid:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)]">
@@ -29,12 +28,10 @@ export function App() {
               aria-label="抽选人生"
               className={cn('min-w-0', panel !== 'draw' && 'hidden mid:block')}
             >
-              <Card>
-                <Steps />
-                <ReviewBar />
-                <Wheel />
-                <StagePanel />
-              </Card>
+              <Steps />
+              <ReviewBar />
+              <Wheel />
+              <StagePanel />
             </section>
             <section
               id="panel-stats"
@@ -55,7 +52,7 @@ export function App() {
             <Ledger />
           </section>
         </main>
-        <p className="mt-9 text-center text-[11.5px] tracking-[0.08em] text-ink-faint">
+        <p className="mt-auto pt-9 text-center text-[11.5px] tracking-[0.08em] text-ink-faint">
           本作为《咒术回战》二次创作的同人向玩具 · 版权归原作者芥见下下及集英社所有 ·
           生成结果仅供娱乐
         </p>

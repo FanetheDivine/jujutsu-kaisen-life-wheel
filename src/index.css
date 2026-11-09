@@ -1,5 +1,22 @@
 @import 'tailwindcss';
 
+/* 滚动条视觉隐藏，但始终保留占位宽度：长短页面切换时内容不会左右跳动。 */
+html {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  scrollbar-color: transparent transparent;
+}
+
+html::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+html::-webkit-scrollbar-track,
+html::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
 @theme inline {
   --color-paper: var(--paper);
   --color-paper-2: var(--paper-2);
@@ -52,6 +69,7 @@
   --sector-line: #b0a181;
   --hl: #a22c18;
   --hl-text: #fff6ea;
+  --wheel-text: var(--ink);
   --grid: rgba(46, 74, 125, 0.1);
   --shadow: 0 1px 0 rgba(27, 23, 32, 0.05), 0 12px 30px -18px rgba(27, 23, 32, 0.35);
 }
@@ -75,6 +93,7 @@
     --sector-line: #4a3b5c;
     --hl: #b8361f;
     --hl-text: #fff2e8;
+    --wheel-text: #fff;
     --grid: rgba(127, 166, 232, 0.07);
     --shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 18px 40px -22px #000;
   }

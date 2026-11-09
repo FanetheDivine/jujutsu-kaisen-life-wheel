@@ -1,0 +1,74 @@
+.chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.ring {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 0.7;
+}
+.axis {
+  stroke: var(--line);
+  stroke-width: 0.7;
+  opacity: 0.8;
+}
+.area {
+  fill: color-mix(in oklab, var(--indigo) 16%, transparent);
+  stroke: var(--indigo);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.dot {
+  fill: var(--vermillion);
+  stroke: var(--surface);
+  stroke-width: 1;
+}
+.label {
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+}
+.name {
+  fill: var(--ink-soft);
+}
+.rank {
+  fill: var(--ink);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.rankEmpty {
+  fill: var(--ink-faint);
+  font-size: 10.5px;
+}
+.centerLabel {
+  fill: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+}
+.centerValue {
+  fill: var(--ink);
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.centerRank {
+  fill: var(--vermillion);
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+/* 图心文字压在多边形与网格上，用页面底色描边做一圈光晕，避免与数据线混在一起。 */
+.centerLabel,
+.centerValue,
+.centerRank {
+  paint-order: stroke fill;
+  stroke: var(--paper);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
