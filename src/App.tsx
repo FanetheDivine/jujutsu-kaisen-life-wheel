@@ -4,7 +4,6 @@ import { MobileNav } from './components/MobileNav'
 import { StagePanel } from './components/StagePanel'
 import { StatsPanel } from './components/StatsPanel'
 import { Steps } from './components/Steps'
-import { Card } from './components/ui/Card'
 import { Wheel } from './components/Wheel'
 import { cn } from './lib/cn'
 import { useGameStore } from './store/useGameStore'
@@ -28,11 +27,9 @@ export function App() {
               aria-label="抽选人生"
               className={cn('min-w-0', panel !== 'draw' && 'hidden mid:block')}
             >
-              <Card>
-                <Steps />
-                <Wheel />
-                <StagePanel />
-              </Card>
+              <Steps />
+              <Wheel />
+              <StagePanel />
             </section>
             <section
               id="panel-stats"
