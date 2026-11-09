@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { forceLand, land, restart } from '../src/game/actions'
 import {
   closeHistoryReview,
+  HISTORY_VIEW_MS,
   openHistoryForStage,
   openHistoryReview,
   recordIndexForStage,
@@ -194,7 +195,7 @@ describe('回看历史', () => {
     expect(openHistoryReview(0)).toBe(true)
     expect(closeHistoryReview()).toBe(true)
 
-    expect(viewOf()).toEqual(before)
+    expect(viewOf()).toEqual({ ...before, spinDuration: HISTORY_VIEW_MS })
     expect(gameStore.getState().review).toBeNull()
   })
 
@@ -217,7 +218,7 @@ describe('回看历史', () => {
     expect(reviewing.review?.previous).toBe(firstPrevious)
     expect(openHistoryReview(2)).toBe(false)
     expect(closeHistoryReview()).toBe(true)
-    expect(viewOf()).toEqual(before)
+    expect(viewOf()).toEqual({ ...before, spinDuration: HISTORY_VIEW_MS })
   })
 
   it('按轮次序号找到对应回看，且跳过轮不可回看', () => {
@@ -248,6 +249,17 @@ describe('回看历史', () => {
 
     gameStore.setState({ auto: false })
     expect(openHistoryReview(0)).toBe(true)
+  })
+
+  it('终局后回看不改变终局状态', () => {
+    setFlow([stage('first', [option('a1')]), stage('second', [option('b1')])])
+    forceLand(0, true)
+    gameStore.setState({ done: true, pendingNext: null })
+
+    expect(openHistoryReview(0)).toBe(true)
+    expect(gameStore.getState().done).toBe(true)
+    expect(closeHistoryReview()).toBe(true)
+    expect(gameStore.getState().done).toBe(true)
   })
 
   it('不存在的记录或轮次不能回看', () => {

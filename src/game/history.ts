@@ -41,7 +41,6 @@ function viewSnapshot(): GameViewSnapshot {
     displayIndex: state.displayIndex,
     rot: state.rot,
     highlight: state.highlight,
-    spinDuration: state.spinDuration,
   }
 }
 
@@ -117,20 +116,28 @@ export function openHistoryReview(recordIndex: number): boolean {
 
 /** 按顶部序号对应的轮次进入回看。 */
 export function openHistoryForStage(stageIndex: number): boolean {
-  const stage = getState().stages[stageIndex]
+  const state = getState()
+  const stage = state.stages[stageIndex]
   if (!stage) return false
-  const recordIndex = recordIndexForStage(stage.id)
-  if (recordIndex < 0) return false
-  return openHistoryReview(recordIndex)
+  const entry = state.history.find(
+    (item) => item.stageIndex === stageIndex && item.stageId === stage.id,
+  )
+  if (!entry) return false
+  return openHistoryReview(entry.recordIndex)
 }
 
-/** 退出回看，恢复进入前的轮次、角度、高亮与动画时长。 */
+/** 退出回看，按回看动效时长恢复进入前的轮次、角度与高亮。 */
 export function closeHistoryReview(): boolean {
   const state = getState()
   if (!state.review) return false
+  const { wheelIndex, displayIndex, rot, highlight } = state.review.previous
   gameStore.setState({
     review: null,
-    ...state.review.previous,
+    wheelIndex,
+    displayIndex,
+    rot,
+    highlight,
+    spinDuration: HISTORY_VIEW_MS,
   })
   return true
 }

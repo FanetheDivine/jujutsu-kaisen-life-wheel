@@ -170,7 +170,6 @@ export interface GameViewSnapshot {
   displayIndex: number
   rot: number
   highlight: string | null
-  spinDuration: number
 }
 
 export interface HistoryReview {

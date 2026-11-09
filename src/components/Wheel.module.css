@@ -24,9 +24,11 @@
   font-family: var(--font-body);
   font-weight: 500;
 }
-.sector.hl text,
-.sector.preview text {
+.sector.hl text {
   fill: var(--hl-text);
+}
+.sector.preview text {
+  fill: var(--paper);
 }
 .hub {
   fill: var(--surface);
@@ -97,6 +99,9 @@
 @media (prefers-reduced-motion: reduce) {
   .wheel {
     transition-duration: 300ms !important;
+  }
+  .wheel.dragging {
+    transition: none !important;
   }
   .hubGroup {
     animation: none;

@@ -218,7 +218,7 @@ export function Wheel() {
             opacity="0.45"
             strokeDasharray="2 6"
           />
-          <g ref={wheelRef} className={styles.wheel}>
+          <g ref={wheelRef} className={cn(styles.wheel, dragging && styles.dragging)}>
             {arcs.map((arc, index) => {
               const a0 = arc.a0 - 90
               const a1 = arc.a1 - 90

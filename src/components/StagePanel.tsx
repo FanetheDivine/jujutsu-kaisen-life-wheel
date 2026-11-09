@@ -91,6 +91,9 @@ export function StagePanel() {
             前轮因果干涉
           </h4>
           <p className="text-xs text-ink-faint">因果已闭合。</p>
+          <p className="mt-1.5 text-[11.5px] leading-[1.6] text-ink-faint">
+            仍可拖动转盘改写最后一轮并重新开启此生，或点顶部序号回看任意一轮。
+          </p>
         </div>
       ) : (
         <Interference dist={dist} />
@@ -144,7 +147,7 @@ export function StagePanel() {
             「重新开始」会清空这一生的全部结果，转盘立刻回到第一轮的初始状态。
           </p>
           <p className="mt-2 text-[11.5px] leading-[1.6] text-indigo">
-            点顶部已完成的序号可回看该轮；回看时直接拖动转盘即可改命，结果改变才会作废后续。
+            点顶部已抽取的序号可回看该轮；回看时直接拖动转盘即可改命，结果改变才会作废后续。
           </p>
         </>
       )}

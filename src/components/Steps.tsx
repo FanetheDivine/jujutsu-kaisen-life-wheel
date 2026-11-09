@@ -1,4 +1,4 @@
-import { closeHistoryReview, openHistoryReview } from '../game/history'
+import { closeHistoryReview, openHistoryForStage } from '../game/history'
 import { labelOf } from '../game/options'
 import { cn } from '../lib/cn'
 import { useGameStore } from '../store/useGameStore'
@@ -57,7 +57,7 @@ export function Steps() {
               disabled={locked}
               onClick={() => {
                 if (active) closeHistoryReview()
-                else openHistoryReview(entry.recordIndex)
+                else openHistoryForStage(index)
               }}
               className={className}
             >
