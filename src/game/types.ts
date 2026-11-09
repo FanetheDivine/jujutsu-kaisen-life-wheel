@@ -143,6 +143,43 @@ export interface DistributionNote {
   changes: WeightChange[]
 }
 
+export interface DistributionView {
+  stage: Stage
+  w: Weights
+  pct: Weights
+  bpct: Weights
+  notes: DistributionNote[]
+  total: number
+}
+
+export interface HistoryCheckpoint {
+  recordIndex: number
+  stageIndex: number
+  stageId: string
+  stages: Stage[]
+  results: ResultContext
+  records: LifeRecord[]
+  battle: BattleState
+  jutsuName: string
+  domainName: string
+  distribution: DistributionView
+}
+
+export interface GameViewSnapshot {
+  wheelIndex: number
+  displayIndex: number
+  rot: number
+  highlight: string | null
+  spinDuration: number
+}
+
+export interface HistoryReview {
+  recordIndex: number
+  checkpoint: HistoryCheckpoint
+  originalValue: string
+  previous: GameViewSnapshot
+}
+
 export interface DerivedLife {
   jutsu: string
   dom: string

@@ -1,7 +1,7 @@
 import { gameStore, getState } from '../store/gameStore'
-import type { DistributionNote, LifeRecord, WeightChange, Weights } from './types'
+import type { DistributionNote, DistributionView, LifeRecord, WeightChange, Weights } from './types'
 
-export function distribution(idx: number) {
+export function distribution(idx: number): DistributionView {
   const { stages, results: context } = getState()
   const stage = stages[idx]
   const base: Weights = {}
