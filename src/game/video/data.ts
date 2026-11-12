@@ -1,5 +1,6 @@
 import { labelOf } from '../options'
 import type { Stage } from '../types'
+import { wheel } from './wheel'
 
 /**
  * 视频规则轮次数据（P1 出身盘 + 天赋盘；P2 装备盘 + 束缚盘 + 评级；临时结局）。
@@ -9,40 +10,6 @@ import type { Stage } from '../types'
  * 以体现“录像里更常出现的结果更容易再出现”，同时保证未观测到的扇面仍有正权重。
  * 画面从不显示百分比，因此这里的权重是经验估计，不是原作者配置。
  */
-
-type Opt = string | [string] | [string, number]
-
-interface WheelSpec {
-  id: string
-  name: string
-  tag: string
-  kind?: Stage['kind']
-  desc?: string
-  skipText?: string
-  skipIf?: Stage['skipIf']
-  opts: Opt[]
-}
-
-function wheel(spec: WheelSpec): Stage {
-  const options = spec.opts.map((item, index) => {
-    const [label, count] = typeof item === 'string' ? [item, 0] : [item[0], item[1] ?? 0]
-    return {
-      id: `${spec.id}_${index}`,
-      label,
-      base: 1 + count,
-      ...(count > 0 ? { hint: `录像中出现 ${count} 次` } : {}),
-    }
-  })
-  return {
-    id: spec.id,
-    name: spec.name,
-    desc: spec.desc ?? '',
-    kind: spec.kind ?? 'dim',
-    tag: spec.tag,
-    options,
-    ...(spec.skipIf ? { skipIf: spec.skipIf, skipText: spec.skipText } : {}),
-  }
-}
 
 const ORIGIN = '出身'
 const TALENT = '天赋'

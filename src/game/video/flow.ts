@@ -11,10 +11,11 @@ import {
   TALENT_STAGES,
   VOW_STAGES,
 } from './data'
+import { PLOT_STAGES } from './plot'
 
 /**
- * 视频流程的主干顺序：出身 → 天赋 → 装备 → 束缚 → 评级 → 终局。
- * 条件子盘不进主干，落地后由 VIDEO_BRANCHES 插入。
+ * 视频流程的主干顺序：出身 → 天赋 → 装备 → 束缚 → 评级 → 剧本线 → 终局。
+ * 条件子盘不进主干，落地后由 VIDEO_BRANCHES 插入；剧本线的篇章门槛由各轮的 skipIf 处理。
  */
 export const VIDEO_MAIN_ORDER = [
   'origin',
@@ -41,9 +42,10 @@ export const VIDEO_MAIN_ORDER = [
   'rating',
   'domainType',
   'domainFx',
-  'ending',
-  'legacy',
 ] as const
+
+/** 剧本线之后的收尾轮次。 */
+export const VIDEO_TAIL_ORDER = ['ending', 'legacy'] as const
 
 function named(stages: Stage[], id: string): Stage {
   const stage = stages.find((item) => item.id === id)
@@ -60,7 +62,11 @@ const ALL = [
   ...ENDING_STAGES,
 ]
 
-export const BASE_VIDEO_FLOW: Stage[] = VIDEO_MAIN_ORDER.map((id) => named(ALL, id))
+export const BASE_VIDEO_FLOW: Stage[] = [
+  ...VIDEO_MAIN_ORDER.map((id) => named(ALL, id)),
+  ...PLOT_STAGES,
+  ...VIDEO_TAIL_ORDER.map((id) => named(ALL, id)),
+]
 
 const ORIGIN_IDS = { fear: 'fear', bornState: 'bornState', intellect: 'intellect' }
 
