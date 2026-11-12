@@ -1,4 +1,4 @@
-export const VERSION = 'v6.4'
+export const VERSION = 'v6.5'
 export const VERSION_DATE = '2026-11-12'
 export const VERSION_NOTE =
-  '规则对齐视频：新增剧本线八篇（四百年前→涩谷），按时间点与篇章参与盘跳篇'
+  '规则对齐视频：新增死灭回游与新宿决战两篇，以及战斗结算三连盘（胜负→伤势→成长）'

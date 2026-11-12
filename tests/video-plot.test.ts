@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest'
 import '../src/game/registry'
 import { BASE_VIDEO_FLOW } from '../src/game/video/flow'
 import { ORIGIN_STAGES } from '../src/game/video/data'
-import { PLOT_STAGES, ERA_ORDER } from '../src/game/video/plot'
+import { PLOT_STAGES, SETTLE_STAGES, ERA_ORDER } from '../src/game/video/plot'
 import type { Stage } from '../src/game/types'
 
 function stageByName(name: string): Stage {
-  const stage = PLOT_STAGES.find((item) => item.name === name)
+  const stage = [...PLOT_STAGES, ...SETTLE_STAGES].find((item) => item.name === name)
   if (!stage) throw new Error('找不到剧本线轮次：' + name)
   return stage
 }
@@ -36,10 +36,10 @@ function skipped(stage: Stage, results: Record<string, string>): boolean {
 }
 
 describe('剧本线：轮次数据', () => {
-  it('82 个轮次，id 与名称唯一，每轮至少两个扇面', () => {
-    expect(PLOT_STAGES).toHaveLength(82)
-    expect(new Set(PLOT_STAGES.map((stage) => stage.id)).size).toBe(82)
-    expect(new Set(PLOT_STAGES.map((stage) => stage.name)).size).toBe(82)
+  it('126 个轮次，id 与名称唯一，每轮至少两个扇面', () => {
+    expect(PLOT_STAGES).toHaveLength(126)
+    expect(new Set(PLOT_STAGES.map((stage) => stage.id)).size).toBe(126)
+    expect(new Set(PLOT_STAGES.map((stage) => stage.name)).size).toBe(126)
     for (const stage of PLOT_STAGES) {
       expect(stage.options.length).toBeGreaterThanOrEqual(2)
       expect(stage.options.every((option) => option.base > 0)).toBe(true)
@@ -91,7 +91,7 @@ describe('剧本线：时间点门槛', () => {
 
   it('录像没抽到时间点时按最早算，篇章参与盘都能播', () => {
     const gates = PLOT_STAGES.filter(
-      (stage) => stage.name.includes('是否参加') || stage.name.includes('是否参与'),
+      (stage) => stage.name.startsWith('是否参加') || stage.name.startsWith('是否参与'),
     )
     expect(gates.length).toBeGreaterThan(3)
     expect(gates.every((stage) => !skipped(stage, {}))).toBe(true)
@@ -153,5 +153,86 @@ describe('剧本线：身份与天赋条件', () => {
 
     expect(skipped(stage, { hasTechnique: pickOf(hasTech, '是') })).toBe(true)
     expect(skipped(stage, { hasTechnique: pickOf(hasTech, '否') })).toBe(false)
+  })
+})
+
+describe('剧本线：死灭回游与新宿决战（P4）', () => {
+  it('死灭回游排在涩谷之后，新宿决战排在最后', () => {
+    const names = PLOT_STAGES.map((stage) => stage.name)
+    expect(names.indexOf('是否参加死灭回游')).toBeGreaterThan(names.indexOf('是否参加涩谷事变'))
+    expect(names.indexOf('是否参加新宿决战')).toBeGreaterThan(names.indexOf('是否参加死灭回游'))
+    expect(names[names.length - 1]).toBe('诛伏赐死·辩论盘·胜负')
+  })
+
+  it('死灭回游没参加时只留参与盘，参加后才有结界内的细节', () => {
+    const gate = stageByName('是否参加死灭回游')
+    const detail = stageByName('死灭回游·带走天使后')
+    const skippedGame = { era: eraPick('死灭回游时期'), [gate.id]: pickOf(gate, '否') }
+
+    expect(skipped(gate, skippedGame)).toBe(false)
+    expect(skipped(detail, skippedGame)).toBe(true)
+    expect(skipped(detail, { ...skippedGame, [gate.id]: pickOf(gate, '是') })).toBe(false)
+  })
+
+  it('新宿决战的加入盘答是才播战场细节，咒灵侧另有专属盘', () => {
+    const gate = stageByName('是否参加新宿决战')
+    const joined = { era: eraPick('新宿决战时期'), [gate.id]: pickOf(gate, '是') }
+    const notJoined = { ...joined, [gate.id]: pickOf(gate, '否') }
+
+    expect(skipped(stageByName('新宿决战·策略'), joined)).toBe(false)
+    expect(skipped(stageByName('新宿决战·策略'), notJoined)).toBe(true)
+    expect(skipped(stageByName('新宿决战·是否参加·咒灵'), joined)).toBe(true)
+    expect(
+      skipped(stageByName('新宿决战·是否参加·咒灵'), { ...joined, origin: originPick('咒灵') }),
+    ).toBe(false)
+  })
+
+  it('时间点在涩谷之后，死灭回游与新宿决战还要继续播；到 68 年后才整段跳过', () => {
+    const late = PLOT_STAGES.filter(
+      (stage) => stage.name.startsWith('死灭回游') || stage.name.startsWith('新宿决战'),
+    )
+    expect(late.length).toBeGreaterThan(5)
+    for (const name of ['是否参加死灭回游', '是否参加新宿决战', '决战阵营']) {
+      expect(skipped(stageByName(name), { era: eraPick('涩谷事变时期') })).toBe(false)
+    }
+    expect(late.every((stage) => skipped(stage, { era: eraPick('68年后外传') }))).toBe(true)
+  })
+})
+
+describe('战斗结算三连盘（P4）', () => {
+  it('胜负 → 伤势 → 成长，接在剧本线之后、终局之前', () => {
+    const ids = BASE_VIDEO_FLOW.map((stage) => stage.id)
+    expect(SETTLE_STAGES.map((stage) => stage.name)).toEqual([
+      '战斗盘·胜负',
+      '战斗盘·伤势·主角',
+      '事件伤势',
+      '是否得到成长·高天赋',
+      '是否得到成长·低天赋',
+      '事件成长·SS天赋以上',
+      '事件成长·低天赋',
+    ])
+    expect(ids.indexOf('p126')).toBeLessThan(ids.indexOf('s01'))
+    expect(ids.indexOf('s07')).toBeLessThan(ids.indexOf('ending'))
+  })
+
+  it('高天赋与低天赋的成长盘按天赋档位二选一', () => {
+    const talent = BASE_VIDEO_FLOW.find((stage) => stage.id === 'talent')
+    if (!talent) throw new Error('缺少天赋盘')
+    const high = { talent: pickOf(talent, 'SSS(五宿、虎杖、乙骨级)') }
+    const low = { talent: pickOf(talent, 'C(一般三级术师)') }
+    const highGrow = stageByName('是否得到成长·高天赋')
+    const lowGrow = stageByName('是否得到成长·低天赋')
+
+    expect(skipped(highGrow, high)).toBe(false)
+    expect(skipped(lowGrow, high)).toBe(true)
+    expect(skipped(highGrow, low)).toBe(true)
+    expect(skipped(lowGrow, low)).toBe(false)
+  })
+
+  it('胜负与伤势盘每轮都播，不因时间点被跳过', () => {
+    const late = { era: eraPick('68年后外传') }
+    const always = SETTLE_STAGES.filter((stage) => !stage.name.includes('成长'))
+    expect(always).toHaveLength(3)
+    expect(always.every((stage) => !skipped(stage, late))).toBe(true)
   })
 })
