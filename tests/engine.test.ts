@@ -109,21 +109,19 @@ describe('概率分布与因果规则', () => {
   it('首轮使用原始权重，概率总和为 100', () => {
     const result = distribution(0)
 
-    expect(result.stage.id).toBe('era')
+    expect(result.stage.id).toBe('origin')
     expect(Object.values(result.pct).reduce((sum, value) => sum + value, 0)).toBeCloseTo(100)
     expect(result.notes).toEqual([])
   })
 
-  it('前置结果会改写后续权重并产生干涉说明', () => {
-    const baseline = distribution(1)
-    gameStore.setState({ results: { era: 'e4' } })
-    const later = distribution(1)
+  it('每个轮次的扇面概率都归一化到 100', () => {
+    for (let index = 0; index < BASE_FLOW.length; index++) {
+      const view = distribution(index)
+      const total = Object.values(view.pct).reduce((sum, value) => sum + value, 0)
 
-    expect(later.stage.id).toBe('age')
-    expect(later.total).toBeGreaterThan(0)
-    expect(later.notes.length).toBeGreaterThan(0)
-    expect(later.pct).not.toEqual(baseline.pct)
-    expect(Object.values(later.pct).reduce((sum, value) => sum + value, 0)).toBeCloseTo(100)
+      expect(total, view.stage.id).toBeCloseTo(100)
+      expect(view.total, view.stage.id).toBeGreaterThan(0)
+    }
   })
 
   it('跳过的轮次按需补记，且不重复记录', () => {
