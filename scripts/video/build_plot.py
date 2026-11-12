@@ -265,6 +265,78 @@ ARCS = [
             ("特殊事件·禅院家灭门", {"gate": "是", "origin": ["咒术高层"]}),
         ],
     },
+    {
+        "key": "culling",
+        "name": "死灭回游",
+        "era": 6,
+        "gate": "是否参加死灭回游",
+        "wheels": [
+            ("是否参加死灭回游", {"self": True}),
+            ("参加死灭回游地点", {"gate": "是"}),
+            ("死灭回游·进结界前·救真依", {"gate": "是"}),
+            ("死灭回游·是否留下守卫天元", {"gate": "是"}),
+            ("守卫天元结果·强者", {"gate": "是"}),
+            ("死灭回游·带走天使后", {"gate": "是"}),
+            ("死灭回游·东京·对手·强者", {"gate": "是"}),
+            ("死灭回游·对手·东京", {"gate": "是"}),
+            ("死灭回游·东京·高专", {"gate": "是"}),
+            ("死灭回游·是否发生战斗", {"gate": "是"}),
+            ("死灭回游·杀高层", {"gate": "是"}),
+            ("死灭回游·是否前往星宫", {"gate": "是"}),
+            ("死灭回游·能否叫来秤金次", {"gate": "是"}),
+            ("死灭回游·宿夺舍", {"gate": "是"}),
+            ("特殊事件·能否阻止宿夺舍", {"gate": "是"}),
+            ("特殊事件·宿夺舍被谁阻止了", {"gate": "是"}),
+            ("特殊事件·宿夺舍是否成功", {"gate": "是"}),
+            ("特殊事件·通缉虎杖", {"gate": "是"}),
+        ],
+    },
+    {
+        "key": "shinjuku",
+        "name": "新宿决战",
+        "era": 7,
+        "gate": "是否参加新宿决战",
+        "wheels": [
+            ("是否参加新宿决战", {"self": True}),
+            ("决战阵营", {"gate": "是"}),
+            ("新宿决战·策略", {"gate": "是"}),
+            ("新宿决战·是否参加·咒灵", {"gate": "是", "origin": ["咒灵"]}),
+            ("新宿决战·和里梅一起·宿方", {"gate": "是"}),
+            ("新宿决战·赶到战场的时间", {"gate": "是"}),
+            ("新宿决战·能否阻止空间斩!", {"gate": "是"}),
+            ("决战训练·成长", {"gate": "是"}),
+            ("决战宿入场顺序", {"gate": "是"}),
+            ("战前劝降·EX道德", {"gate": "是"}),
+            ("特殊事件·五条悟是否解封", {"gate": "是"}),
+            ("特殊事件·五条悟清算·高层", {"gate": "是", "origin": ["咒术高层"]}),
+            ("特殊事件·伏黑津美纪/万", {"gate": "是"}),
+            ("特殊事件·伏黑惠是否存活", {"gate": "是"}),
+            ("特殊事件·是否再战五条", {"gate": "是"}),
+            ("特殊事件·E-道德·是否再战", {"gate": "是", "moral": "low"}),
+            ("特殊事件·是否逃脱", {"gate": "是"}),
+            ("特殊事件·是否追击主角", {"gate": "是"}),
+            ("特殊事件·战后宿是否清算主角", {"gate": "是"}),
+            ("特殊事件·是否当场杀死索", {"gate": "是"}),
+            ("处决虎杖·虎杖的选择", {"gate": "是"}),
+            ("当宿从领域出来·他看见的是", {"gate": "是"}),
+            ("诛伏赐死·辩论盘·初始胜率", {"gate": "是"}),
+            ("诛伏赐死·辩论盘·宿傩", {"gate": "是"}),
+            ("诛伏赐死·辩论盘·日车", {"gate": "是"}),
+            ("诛伏赐死·辩论盘·胜负", {"gate": "是"}),
+        ],
+    },
+]
+
+# 战斗结算三连盘：胜负 → 伤势 → 成长，每次打完都过一遍。
+# 高天赋与低天赋是两个不同轮次，用天赋盘的档位二选一。
+SETTLE = [
+    ("战斗盘·胜负", {}),
+    ("战斗盘·伤势·主角", {}),
+    ("事件伤势", {}),
+    ("是否得到成长·高天赋", {"talent": "high"}),
+    ("是否得到成长·低天赋", {"talent": "low"}),
+    ("事件成长·SS天赋以上", {"talent": "high"}),
+    ("事件成长·低天赋", {"talent": "low"}),
 ]
 
 
@@ -282,6 +354,31 @@ EXTRA_OPTS = {
     "特殊事件·顺平之后是否加入高专": ["加入", "不加入"],
     "交流会·阵营": ["高专方", "索方"],
     "特殊事件·机械丸叛变·低道德": ["叛变", "没叛变"],
+    "是否参加死灭回游": ["是", "否"],
+    "是否参加新宿决战": ["是", "否"],
+    "死灭回游·是否发生战斗": ["是", "否"],
+    "死灭回游·是否留下守卫天元": ["留下", "不留下"],
+    "死灭回游·能否叫来秤金次": ["叫来了", "没叫来"],
+    "特殊事件·能否阻止宿夺舍": ["阻止了", "没阻止"],
+    "特殊事件·宿夺舍是否成功": ["成功", "失败"],
+    "特殊事件·伏黑惠是否存活": ["存活", "战死"],
+    "特殊事件·是否再战五条": ["再战", "不再战"],
+    "特殊事件·E-道德·是否再战": ["再战", "不再战"],
+    "特殊事件·是否逃脱": ["逃脱", "没逃脱"],
+    "特殊事件·是否追击主角": ["追击", "不追击"],
+    "特殊事件·战后宿是否清算主角": ["清算", "不清算"],
+    "特殊事件·是否当场杀死索": ["杀了", "没杀"],
+    "特殊事件·五条悟是否解封": ["解封", "没解封"],
+    "特殊事件·通缉虎杖": ["被通缉", "没被通缉"],
+    "战斗盘·胜负": ["胜", "负"],
+    "战斗盘·伤势·主角": ["重伤", "轻伤", "无伤"],
+    "事件伤势": ["重伤", "轻伤"],
+    "是否得到成长·高天赋": ["是", "否"],
+    "是否得到成长·低天赋": ["是", "否"],
+    "事件成长·SS天赋以上": ["是", "否"],
+    "事件成长·低天赋": ["是", "否"],
+    "诛伏赐死·辩论盘·日车": ["有罪", "无罪"],
+    "诛伏赐死·辩论盘·胜负": ["日车胜", "宿傩胜"],
 }
 
 
@@ -304,31 +401,40 @@ def options_for(ck):
     return rows[:MAX_OPTIONS]
 
 
-stages = []
 missing = []
-for arc in ARCS:
-    for name, when in arc["wheels"]:
-        ck = name2ck.get(name)
-        if not ck:
-            missing.append(name)
-            continue
-        options = options_for(ck)
-        if len(options) < 2:
-            options = [{"label": label, "count": 0} for label in EXTRA_OPTS.get(name, [])] or options
-        stages.append(
-            {
-                "id": "p%02d" % (len(stages) + 1),
-                "arc": arc["key"],
-                "arcName": arc["name"],
-                "era": arc["era"],
-                "gate": arc.get("gate"),
-                "name": name,
-                "pos": round(pos.get(ck, 0), 4),
-                "eps": sorted(union[ck]["eps"]),
-                "when": when,
-                "options": options,
-            }
-        )
+
+
+def build(group, prefix):
+    rows = []
+    for arc in group:
+        for name, when in arc["wheels"]:
+            ck = name2ck.get(name)
+            if not ck:
+                missing.append(name)
+                continue
+            options = options_for(ck)
+            # 录屏可能停格在别的盘上（OCR 扇面张冠李戴），按语义补的选项优先。
+            if name in EXTRA_OPTS or len(options) < 2:
+                options = [{"label": label, "count": 0} for label in EXTRA_OPTS.get(name, [])] or options
+            rows.append(
+                {
+                    "id": "%s%02d" % (prefix, len(rows) + 1),
+                    "arc": arc["key"],
+                    "arcName": arc["name"],
+                    "era": arc["era"],
+                    "gate": arc.get("gate"),
+                    "name": name,
+                    "pos": round(pos.get(ck, 0), 4),
+                    "eps": sorted(union[ck]["eps"]),
+                    "when": when,
+                    "options": options,
+                }
+            )
+    return rows
+
+
+stages = build(ARCS, "p")
+settle = build([{"key": "settle", "name": "战斗结算", "era": 0, "wheels": SETTLE}], "s")
 
 if missing:
     with open("tmp_missing.txt", "w", encoding="utf-8") as fh:
@@ -340,10 +446,10 @@ for stage in stages:
     if stage["when"].get("self"):
         gate_ids[stage["name"]] = stage["id"]
 
-thin = [s["id"] + " " + s["name"] for s in stages if len(s["options"]) < 2]
+thin = [s["id"] + " " + s["name"] for s in stages + settle if len(s["options"]) < 2]
 
 json.dump(
-    {"source": "毓彧庾《咒术转盘》ep74–ep82 + 特别篇逐帧还原", "stages": stages},
+    {"source": "毓彧庾《咒术转盘》ep74–ep82 + 特别篇逐帧还原", "stages": stages, "settle": settle},
     open("scripts/video/plot.json", "w", encoding="utf-8"),
     ensure_ascii=False,
     separators=(",", ":"),
@@ -362,7 +468,8 @@ ERA_ORDER = [
 ]
 
 def emit_when(stage):
-    thunks = ["eraIndex(context.era) > %d" % stage["era"]]
+    # 结算盘（arc=settle）不看时间点：打到哪一年都要结算这一仗。
+    thunks = [] if stage["arc"] == "settle" else ["eraIndex(context.era) > %d" % stage["era"]]
     when = stage["when"]
     if when.get("gate") and stage["gate"]:
         gid = gate_ids[stage["gate"]]
@@ -377,7 +484,11 @@ def emit_when(stage):
         thunks.append("!isLowMoral(labelOf(context.moral))")
     if when.get("tech") == "否":
         thunks.append("labelOf(context.hasTechnique) === '是'")
-    return " || ".join(thunks)
+    if when.get("talent") == "high":
+        thunks.append("!isHighTalent(labelOf(context.talent))")
+    if when.get("talent") == "low":
+        thunks.append("!isLowTalent(labelOf(context.talent))")
+    return " || ".join(thunks) or "false"
 
 
 def opt(item):
@@ -392,9 +503,9 @@ lines.append("import type { Stage } from '../types'")
 lines.append("import { wheel } from './wheel'")
 lines.append("")
 lines.append("/**")
-lines.append(" * 剧本线轮次（P3）：四百年前 → 怀玉 → 日常 → 百鬼夜行 → 剧情开始 → 幼鱼与逆罚 → 交流会 → 涩谷事变。")
+lines.append(" * 剧本线轮次（P3–P4）：四百年前 → 怀玉 → 日常 → 百鬼夜行 → 剧情开始 → 幼鱼与逆罚 →")
 lines.append(" *")
-lines.append(" * 由 scripts/video/build_plot.py 从逐帧还原结果生成，勿手改；改条件请改脚本里的 ARCS 表。")
+lines.append(" * 交流会 → 涩谷事变 → 死灭回游 → 新宿决战；战斗结算三连盘（胜负 → 伤势 → 成长）单独一组。")
 lines.append(" * 触发条件是推断：时间点早于该篇章 → 整段跳过；参与盘答「否」→ 只留 gate 与替补盘。")
 lines.append(" */")
 lines.append("")
@@ -426,6 +537,15 @@ lines.append("export function isLowMoral(label: string): boolean {")
 lines.append("  return label.startsWith('D') || label.startsWith('E')")
 lines.append("}")
 lines.append("")
+lines.append("/** 天赋档位：SSS / SS / S / 超越五宿算高天赋，C / D / 学不明白算低天赋。 */")
+lines.append("export function isHighTalent(label: string): boolean {")
+lines.append("  return /^(SSS|SS|S\(|超越)/.test(label)")
+lines.append("}")
+lines.append("")
+lines.append("export function isLowTalent(label: string): boolean {")
+lines.append("  return /^(C|D|学不明白)/.test(label)")
+lines.append("}")
+lines.append("")
 lines.append("export const PLOT_STAGES: Stage[] = [")
 for stage in stages:
     lines.append("  wheel({")
@@ -433,7 +553,29 @@ for stage in stages:
     lines.append("    name: '%s'," % stage["name"].replace("'", "\\'"))
     lines.append("    tag: PLOT,")
     lines.append("    skipText: '这段时间不在你的时间线上',")
-    lines.append("    skipIf: (context) => %s," % emit_when(stage))
+    cond = emit_when(stage)
+    if cond == "false":
+        lines.append("    skipIf: () => false,")
+    else:
+        lines.append("    skipIf: (context) => %s," % cond)
+    lines.append("    opts: [")
+    for o in stage["options"]:
+        lines.append(opt(o))
+    lines.append("    ],")
+    lines.append("  }),")
+lines.append("]")
+lines.append("")
+lines.append("export const SETTLE_STAGES: Stage[] = [")
+for stage in settle:
+    lines.append("  wheel({")
+    lines.append("    id: '%s'," % stage["id"])
+    lines.append("    name: '%s'," % stage["name"].replace("'", "\'"))
+    lines.append("    tag: PLOT,")
+    cond = emit_when(stage)
+    if cond == "false":
+        lines.append("    skipIf: () => false,")
+    else:
+        lines.append("    skipIf: (context) => %s," % cond)
     lines.append("    opts: [")
     for o in stage["options"]:
         lines.append(opt(o))
