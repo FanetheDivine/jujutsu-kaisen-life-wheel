@@ -13,7 +13,6 @@ import { wheel } from './wheel'
 
 const ORIGIN = '出身'
 const TALENT = '天赋'
-const END = '终局'
 
 /** 出身盘：开局定人。 */
 export const ORIGIN_STAGES: Stage[] = [
@@ -602,30 +601,6 @@ export const RATING_STAGES: Stage[] = [
   }),
 ]
 
-export const ENDING_STAGES: Stage[] = [
-  wheel({
-    id: 'ending',
-    kind: 'ending',
-    name: '是否活到68年后',
-    tag: END,
-    opts: [
-      ['是', 2],
-      ['否', 2],
-      ['是(寿命+1)', 1],
-    ],
-  }),
-  wheel({
-    id: 'legacy',
-    kind: 'legacy',
-    name: '观众看完会不会投币',
-    tag: END,
-    opts: [
-      ['投币', 1],
-      ['白嫖', 1],
-    ],
-  }),
-]
-
 export const VIDEO_STAGES: Stage[] = [
   ...ORIGIN_STAGES,
   ...ORIGIN_BRANCHES,
@@ -634,5 +609,4 @@ export const VIDEO_STAGES: Stage[] = [
   ...GEAR_STAGES,
   ...VOW_STAGES,
   ...RATING_STAGES,
-  ...ENDING_STAGES,
 ]

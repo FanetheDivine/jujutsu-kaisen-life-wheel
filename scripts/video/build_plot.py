@@ -327,6 +327,27 @@ ARCS = [
     },
 ]
 
+# 结局与彩蛋（P6）：先问活没活到 68 年后，再分「68 年后线」「主角死后线」「逆转时间线」，
+# 最后是三条彩蛋盘与观众投币。后几条在录像里是散落的插盘，这里统一收在终局。
+ENDINGS = [
+    ("是否活到68年后", {"self": True}),
+    ("在哪里·68年后", {"gate": "是"}),
+    ("68年后人类是否存在", {"gate": "是"}),
+    ("68年后声望", {"gate": "是"}),
+    ("68年后是否参加战斗", {"gate": "是"}),
+    ("主角死后·五宿对决胜利者是", {"gate": "否"}),
+    ("主角死后·索和夏油是谁对付的", {"gate": "否"}),
+    ("逆转时间·虎杖回来的方式是", {"gate": "否"}),
+    ("逆转时间·虎杖回到的时间点是", {"gate": "否"}),
+    ("逆转时间·时间是否继续回溯", {"gate": "否"}),
+    ("逆转时间·虎杖能否回到68年后", {"gate": "否"}),
+    ("逆转时间·回不去了·决定", {"gate": "否"}),
+    ("我掌握了咒力的核心!", {}),
+    ("宿把手机砍坏了怎么办", {}),
+    ("打架前先恰个饭", {}),
+    ("观众看完会不会投币", {}),
+]
+
 # 战斗结算三连盘：胜负 → 伤势 → 成长，每次打完都过一遍。
 # 高天赋与低天赋是两个不同轮次，用天赋盘的档位二选一。
 SETTLE = [
@@ -379,6 +400,10 @@ EXTRA_OPTS = {
     "事件成长·低天赋": ["是", "否"],
     "诛伏赐死·辩论盘·日车": ["有罪", "无罪"],
     "诛伏赐死·辩论盘·胜负": ["日车胜", "宿傩胜"],
+    "68年后人类是否存在": ["存在", "不存在"],
+    "主角死后·索和夏油是谁对付的": ["五角战", "高专"],
+    "宿把手机砍坏了怎么办": ["去转转", "自己修修看"],
+    "打架前先恰个饭": ["妙界垫一口", "海洋至尊补个水"],
 }
 
 
@@ -407,6 +432,9 @@ missing = []
 def build(group, prefix):
     rows = []
     for arc in group:
+        # 组内若有一轮用 self 标记成「参与盘」，其余轮次的 gate 条件就指向它，
+        # 例如结局组用「是否活到68年后」分叉。
+        own_gate = next((name for name, when in arc["wheels"] if when.get("self")), None)
         for name, when in arc["wheels"]:
             ck = name2ck.get(name)
             if not ck:
@@ -422,7 +450,7 @@ def build(group, prefix):
                     "arc": arc["key"],
                     "arcName": arc["name"],
                     "era": arc["era"],
-                    "gate": arc.get("gate"),
+                    "gate": arc.get("gate") or own_gate,
                     "name": name,
                     "pos": round(pos.get(ck, 0), 4),
                     "eps": sorted(union[ck]["eps"]),
@@ -435,6 +463,9 @@ def build(group, prefix):
 
 stages = build(ARCS, "p")
 settle = build([{"key": "settle", "name": "战斗结算", "era": 0, "wheels": SETTLE}], "s")
+ending = build([{"key": "ending", "name": "结局", "era": 0, "wheels": ENDINGS}], "e")
+ending[0]["id"] = "ending"
+ending[-1]["id"] = "legacy"
 
 if missing:
     with open("tmp_missing.txt", "w", encoding="utf-8") as fh:
@@ -442,14 +473,19 @@ if missing:
     raise SystemExit("MISSING " + str(len(missing)))
 
 gate_ids = {}
-for stage in stages:
+for stage in stages + ending:
     if stage["when"].get("self"):
         gate_ids[stage["name"]] = stage["id"]
 
-thin = [s["id"] + " " + s["name"] for s in stages + settle if len(s["options"]) < 2]
+thin = [s["id"] + " " + s["name"] for s in stages + settle + ending if len(s["options"]) < 2]
 
 json.dump(
-    {"source": "毓彧庾《咒术转盘》ep74–ep82 + 特别篇逐帧还原", "stages": stages, "settle": settle},
+    {
+        "source": "毓彧庾《咒术转盘》ep74–ep82 + 特别篇逐帧还原",
+        "stages": stages,
+        "settle": settle,
+        "ending": ending,
+    },
     open("scripts/video/plot.json", "w", encoding="utf-8"),
     ensure_ascii=False,
     separators=(",", ":"),
@@ -468,8 +504,12 @@ ERA_ORDER = [
 ]
 
 def emit_when(stage):
-    # 结算盘（arc=settle）不看时间点：打到哪一年都要结算这一仗。
-    thunks = [] if stage["arc"] == "settle" else ["eraIndex(context.era) > %d" % stage["era"]]
+    # 结算盘与结局盘不看时间点：打到哪一年都要结算这一仗、都要给个收尾。
+    thunks = (
+        []
+        if stage["arc"] in ("settle", "ending")
+        else ["eraIndex(context.era) > %d" % stage["era"]]
+    )
     when = stage["when"]
     if when.get("gate") and stage["gate"]:
         gid = gate_ids[stage["gate"]]
@@ -510,6 +550,7 @@ lines.append(" * 触发条件是推断：时间点早于该篇章 → 整段跳�
 lines.append(" */")
 lines.append("")
 lines.append("const PLOT = '剧情'")
+lines.append("const ENDING = '终局'")
 lines.append("")
 lines.append("export const ERA_ORDER = [")
 for era in ERA_ORDER:
@@ -576,6 +617,24 @@ for stage in settle:
         lines.append("    skipIf: () => false,")
     else:
         lines.append("    skipIf: (context) => %s," % cond)
+    lines.append("    opts: [")
+    for o in stage["options"]:
+        lines.append(opt(o))
+    lines.append("    ],")
+    lines.append("  }),")
+lines.append("]")
+lines.append("")
+lines.append("export const ENDING_STAGES: Stage[] = [")
+for stage in ending:
+    lines.append("  wheel({")
+    lines.append("    id: '%s'," % stage["id"])
+    lines.append("    name: '%s'," % stage["name"].replace("'", "\'"))
+    lines.append("    tag: ENDING,")
+    lines.append("    kind: '%s'," % ("ending" if stage["id"] == "ending" else "legacy" if stage["id"] == "legacy" else "dim"))
+    cond = emit_when(stage)
+    lines.append(
+        "    skipIf: () => false," if cond == "false" else "    skipIf: (context) => %s," % cond
+    )
     lines.append("    opts: [")
     for o in stage["options"]:
         lines.append(opt(o))

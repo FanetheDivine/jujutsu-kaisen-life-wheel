@@ -2,7 +2,6 @@ import { gameStore, getState } from '../../store/gameStore'
 import { labelOf, register } from '../options'
 import type { Stage } from '../types'
 import {
-  ENDING_STAGES,
   GEAR_STAGES,
   ORIGIN_BRANCHES,
   ORIGIN_STAGES,
@@ -12,7 +11,7 @@ import {
   VOW_STAGES,
 } from './data'
 import { BATTLE_STAGES, attachBattleRule } from './battle'
-import { PLOT_STAGES, SETTLE_STAGES } from './plot'
+import { ENDING_STAGES, PLOT_STAGES, SETTLE_STAGES } from './plot'
 
 /**
  * 视频流程的主干顺序：出身 → 天赋 → 装备 → 束缚 → 评级 → 剧本线 → 战斗卡面 → 战斗结算 → 终局。
@@ -45,7 +44,7 @@ export const VIDEO_MAIN_ORDER = [
   'domainFx',
 ] as const
 
-/** 剧本线之后的收尾轮次。 */
+/** 终局轮次：68 年后线 / 主角死后线 / 逆转时间线 + 彩蛋盘，按是否活到 68 年后分支。 */
 export const VIDEO_TAIL_ORDER = ['ending', 'legacy'] as const
 
 function named(stages: Stage[], id: string): Stage {
@@ -54,14 +53,7 @@ function named(stages: Stage[], id: string): Stage {
   return stage
 }
 
-const ALL = [
-  ...ORIGIN_STAGES,
-  ...TALENT_STAGES,
-  ...GEAR_STAGES,
-  ...VOW_STAGES,
-  ...RATING_STAGES,
-  ...ENDING_STAGES,
-]
+const ALL = [...ORIGIN_STAGES, ...TALENT_STAGES, ...GEAR_STAGES, ...VOW_STAGES, ...RATING_STAGES]
 
 /** 结算三连盘的第一轮是「战斗盘·胜负」：胜率由前面的卡面流程算出来，所以要挂规则。 */
 const SETTLE_WITH_WIN_RULE = SETTLE_STAGES.map((stage) =>
@@ -73,7 +65,7 @@ export const BASE_VIDEO_FLOW: Stage[] = [
   ...PLOT_STAGES,
   ...BATTLE_STAGES,
   ...SETTLE_WITH_WIN_RULE,
-  ...VIDEO_TAIL_ORDER.map((id) => named(ALL, id)),
+  ...ENDING_STAGES,
 ]
 
 const ORIGIN_IDS = { fear: 'fear', bornState: 'bornState', intellect: 'intellect' }
