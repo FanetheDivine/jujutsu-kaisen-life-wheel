@@ -27,11 +27,13 @@ import {
   vowStageFor,
 } from './data'
 import { BY, register } from './options'
+import { videoExpandAfter } from './video/flow'
 import { oppOf } from './rules'
 import type { BattleSide, Stage } from './types'
 
 /** 落地后的动态插轮，保持原有判断顺序。 */
 export function expandAfter(idx: number, stageId: string, pick: string): void {
+  if (videoExpandAfter(idx, stageId, pick)) return
   const state = getState()
   const stages = state.stages
   const battle = { ...state.battle, log: [...state.battle.log] }

@@ -1,0 +1,509 @@
+import { labelOf } from '../options'
+import type { Stage } from '../types'
+
+/**
+ * 视频规则轮次数据（P1：出身盘 + 天赋盘 + 临时结局）。
+ *
+ * 数据来源：UP 主毓彧庾《咒术转盘》ep74–ep82 与特别篇的逐帧还原；
+ * 括号里的数字是这 10 局录像中该扇面被抽中的次数，权重按 `1 + 次数` 计算，
+ * 以体现“录像里更常出现的结果更容易再出现”，同时保证未观测到的扇面仍有正权重。
+ * 画面从不显示百分比，因此这里的权重是经验估计，不是原作者配置。
+ */
+
+type Opt = string | [string] | [string, number]
+
+interface WheelSpec {
+  id: string
+  name: string
+  tag: string
+  kind?: Stage['kind']
+  desc?: string
+  skipText?: string
+  skipIf?: Stage['skipIf']
+  opts: Opt[]
+}
+
+function wheel(spec: WheelSpec): Stage {
+  const options = spec.opts.map((item, index) => {
+    const [label, count] = typeof item === 'string' ? [item, 0] : [item[0], item[1] ?? 0]
+    return {
+      id: `${spec.id}_${index}`,
+      label,
+      base: 1 + count,
+      ...(count > 0 ? { hint: `录像中出现 ${count} 次` } : {}),
+    }
+  })
+  return {
+    id: spec.id,
+    name: spec.name,
+    desc: spec.desc ?? '',
+    kind: spec.kind ?? 'dim',
+    tag: spec.tag,
+    options,
+    ...(spec.skipIf ? { skipIf: spec.skipIf, skipText: spec.skipText } : {}),
+  }
+}
+
+const ORIGIN = '出身'
+const TALENT = '天赋'
+const END = '终局'
+
+/** 出身盘：开局定人。 */
+export const ORIGIN_STAGES: Stage[] = [
+  wheel({
+    id: 'origin',
+    name: '穿越后的初始身份',
+    tag: ORIGIN,
+    opts: [
+      ['普通人', 2],
+      ['咒术师'],
+      ['咒术高层', 2],
+      ['诅咒师'],
+      ['咒灵', 2],
+      ['式神', 2],
+      ['咒骸', 2],
+      ['魂穿原著角色', 1],
+    ],
+  }),
+  wheel({
+    id: 'place',
+    name: '穿越后的地点',
+    tag: ORIGIN,
+    opts: [
+      ['日本', 2],
+      ['亚洲除日本外其他地方'],
+      ['欧洲'],
+      ['非洲', 2],
+      ['北美洲'],
+      ['南美洲'],
+      ['澳洲', 1],
+      ['南极洲'],
+      ['东南极洲'],
+      ['西伯利亚'],
+    ],
+  }),
+  wheel({
+    id: 'era',
+    name: '穿越后的时间点',
+    tag: ORIGIN,
+    opts: [
+      ['千年前平安时代'],
+      ['400年前'],
+      ['怀玉时期'],
+      ['0卷时期'],
+      ['剧情开始时'],
+      ['涩谷事变时期', 1],
+      ['死灭回游时期'],
+      ['新宿决战时期'],
+      ['68年后外传', 1],
+    ],
+  }),
+  wheel({
+    id: 'sex',
+    name: '穿越后的性别',
+    tag: ORIGIN,
+    opts: [['男', 1], ['女', 1], ['不男不女'], ['武装直升机']],
+  }),
+  wheel({
+    id: 'age',
+    name: '穿越后的年龄',
+    tag: ORIGIN,
+    opts: [
+      ['刚出生的婴儿'],
+      ['6岁未成人'],
+      ['11岁是小学生'],
+      ['16岁未成年', 1],
+      ['刚满18岁'],
+      ['24大好青年'],
+      ['30壮年巅峰期'],
+      ['40岁中年人', 2],
+      ['55年过半百', 1],
+      ['66老年人'],
+      ['75古稀之年'],
+      ['88耄耋之年'],
+      ['99极限斗罗'],
+    ],
+  }),
+  wheel({
+    id: 'face',
+    name: '穿越后的颜值',
+    tag: ORIGIN,
+    opts: [
+      ['E(面目可憎)'],
+      ['D(尖嘴猴腮)'],
+      ['C(其貌不扬)', 2],
+      ['B(眉清目秀)', 3],
+      ['A(花容月貌)'],
+      ['S(国色天香)', 1],
+      ['SS(沉鱼落雁)'],
+      ['SSS(倾国倾城)', 1],
+      ['EX(咒术魅魔)', 1],
+      ['让人看了诞生咒灵'],
+    ],
+  }),
+  wheel({
+    id: 'moral',
+    name: '道德水平',
+    tag: ORIGIN,
+    opts: [
+      ['EX(超凡入圣)'],
+      ['SSS(高风亮节)', 1],
+      ['SS(光明磊落)', 1],
+      ['S(乐善好施)'],
+      ['A(安分守己)', 1],
+      ['B(见风使舵)'],
+      ['C(见利忘义)', 1],
+      ['D(恬不知耻)', 1],
+      ['E(丧心病狂)'],
+      ['E-(禽兽不如)'],
+    ],
+  }),
+]
+
+/** 条件插入的出身子盘。 */
+export const ORIGIN_BRANCHES: Stage[] = [
+  wheel({
+    id: 'fear',
+    name: '由什么恐惧诞生的(咒灵专属)',
+    tag: ORIGIN,
+    opts: [
+      ['普通类'],
+      ['疾病类'],
+      ['人类社会现象(征服、阶级)', 1],
+      ['人类对孤独的恐惧'],
+      ['传说'],
+      ['根源恐惧(死亡、黑暗)'],
+      ['自然现象(雷霆)'],
+    ],
+  }),
+  wheel({
+    id: 'bornState',
+    name: '诞生时是什么状态(咒灵专属)',
+    tag: ORIGIN,
+    opts: [['完全体', 1], ['咒胎'], ['咒物受肉体']],
+  }),
+  wheel({
+    id: 'intellect',
+    name: '智力水平(咒灵)',
+    tag: ORIGIN,
+    opts: [
+      ['人类尖子生智力', 1],
+      ['正常人类智力'],
+      ['能够正常对话但不算聪明'],
+      ['只会说同一句话'],
+      ['较迟钝'],
+      ['复杂思维'],
+    ],
+  }),
+  wheel({
+    id: 'heredity',
+    name: '高层·是否遗传祖传术式',
+    tag: ORIGIN,
+    opts: [['是'], ['否', 1]],
+  }),
+  wheel({
+    id: 'persecution',
+    name: '诅咒师·遭遇的迫害是',
+    tag: ORIGIN,
+    opts: [['孤立'], ['羞辱'], ['背叛'], ['谋杀']],
+  }),
+  wheel({
+    id: 'soulRole',
+    name: '魂穿·身体主导权是',
+    tag: ORIGIN,
+    opts: [['主角'], ['虎杖', 1]],
+  }),
+  wheel({
+    id: 'placeJp',
+    name: '穿越后的地点·日本·地区',
+    tag: ORIGIN,
+    opts: [['东京', 1], ['仙台', 1], ['京都'], ['北方乡下'], ['埼玉县']],
+  }),
+  wheel({
+    id: 'placeAsia',
+    name: '穿越后的地点·亚洲·地区',
+    tag: ORIGIN,
+    opts: [['中亚', 1], ['东亚'], ['北亚'], ['东南亚']],
+  }),
+  wheel({
+    id: 'placeEu',
+    name: '穿越后地点·欧洲·地区',
+    tag: ORIGIN,
+    opts: [['伊比利亚', 1], ['斯堪的纳维亚'], ['斯拉夫'], ['日耳曼'], ['英格兰'], ['高卢']],
+  }),
+]
+
+/** 天赋盘：定能力。 */
+export const TALENT_STAGES: Stage[] = [
+  wheel({
+    id: 'hasTechnique',
+    name: '是否拥有生得术式',
+    tag: TALENT,
+    opts: [
+      ['是', 1],
+      ['否', 2],
+    ],
+  }),
+  wheel({
+    id: 'technique',
+    name: '生得术式',
+    tag: TALENT,
+    skipIf: (context) => labelOf(context.hasTechnique) === '否',
+    skipText: '没有生得术式 —— 此轮不存',
+    opts: [
+      ['漫画家', 2],
+      ['石流龙', 2],
+      ['冰凝咒法', 1],
+      ['蒸汽术式', 1],
+      ['不义游戏'],
+      ['十种影法术'],
+      ['咒灵操术'],
+      ['无为转变'],
+      ['无下限'],
+      ['咒言'],
+      ['模仿'],
+      ['天空术式(乌鹭)'],
+      ['星之怒(九十九)'],
+      ['混沌与调和'],
+      ['十划咒法(七海)'],
+      ['构筑术式'],
+      ['赤血操术'],
+      ['付丧操术'],
+      ['乐岩寺'],
+      ['再契象'],
+      ['分身(神秘纸袋男)'],
+      ['虎杖版超级受肉'],
+      ['自定义术式'],
+    ],
+  }),
+  wheel({
+    id: 'curseTotal',
+    name: '咒力总量',
+    tag: TALENT,
+    opts: [
+      ['EX(伪无限)'],
+      ['SSS(宿傩)', 1],
+      ['SS(乙骨)'],
+      ['S(五条)', 1],
+      ['A(特级)'],
+      ['B(一级)'],
+      ['C(二级)'],
+      ['D(三级)'],
+      ['E(四级)'],
+    ],
+  }),
+  wheel({
+    id: 'physique',
+    name: '体质(基础体质)',
+    tag: TALENT,
+    opts: [
+      ['SSS(天与暴君)'],
+      ['SS(入学虎)', 1],
+      ['S(普通人极限)'],
+      ['A(顶尖运动员)', 1],
+      ['B(体育生)', 1],
+      ['C(正常人)'],
+      ['D(体弱多病)'],
+      ['E(残疾)'],
+      ['E-(只剩脑子)', 1],
+    ],
+  }),
+  wheel({
+    id: 'ceEff',
+    name: '咒力效率',
+    tag: TALENT,
+    opts: [
+      ['SSS(比肩六眼)', 1],
+      ['SS(宿傩)'],
+      ['S(特级)', 2],
+      ['A(一级)'],
+      ['B(二级)', 1],
+      ['C(三级)', 1],
+      ['D(四级)'],
+      ['E(弱四级)'],
+      ['E-(漏气水平)'],
+    ],
+  }),
+  wheel({
+    id: 'taijutsu',
+    name: '体术水平',
+    tag: TALENT,
+    opts: [
+      ['EX(两只手能打四手宿)', 1],
+      ['SSS(四手宿)', 1],
+      ['SS(五宿)', 1],
+      ['S(特级)', 1],
+      ['A(一级)'],
+      ['B(二级)', 1],
+      ['C(三级)', 1],
+      ['D(四级)'],
+      ['E(弱四级)', 1],
+      ['E-(普通上班族)', 1],
+    ],
+  }),
+  wheel({
+    id: 'ceCtrl',
+    name: '咒力操纵',
+    tag: TALENT,
+    opts: [
+      ['EX(远超六眼)'],
+      ['SSS(比肩六眼)', 2],
+      ['SS(宿傩)', 3],
+      ['S(特级)'],
+      ['A(一级)'],
+      ['B(二级)'],
+      ['C(三级)'],
+      ['D(四级)'],
+      ['E(弱四级)'],
+    ],
+  }),
+  wheel({
+    id: 'talent',
+    name: '天赋',
+    tag: TALENT,
+    opts: [
+      ['SSS(五宿、虎杖、乙骨级)', 1],
+      ['SS(普通特级)'],
+      ['S(伏黑)'],
+      ['A(一般一级术师)', 1],
+      ['B(一般二级术师)'],
+      ['C(一般三级术师)', 3],
+      ['D(普通人)'],
+      ['学不明白任何术式'],
+      ['超越五宿、进入未知境界'],
+    ],
+  }),
+  wheel({
+    id: 'special',
+    name: '是否有特殊天赋',
+    tag: TALENT,
+    opts: [['是'], ['否', 6]],
+  }),
+  wheel({
+    id: 'ultimate',
+    name: '极之番类型',
+    tag: TALENT,
+    opts: [
+      ['增幅自身类(幻兽)', 2],
+      ['术式效果扩展类', 1],
+    ],
+  }),
+  wheel({
+    id: 'domainType',
+    name: '领域类型',
+    tag: TALENT,
+    opts: [['封闭式', 2], ['开放式'], ['开放封闭自由切换'], ['未完成']],
+  }),
+  wheel({
+    id: 'domainFx',
+    name: '领域效果',
+    tag: TALENT,
+    opts: [['强控类(五条)', 1], ['增幅咒术类(乙骨)', 1], ['规则类(日车)'], ['必中']],
+  }),
+]
+
+/** 条件插入的天赋子盘。 */
+export const TALENT_BRANCHES: Stage[] = [
+  wheel({
+    id: 'customCount',
+    name: '(自定义)术式类型数量',
+    tag: TALENT,
+    opts: [['1 个'], ['2 个'], ['3 个']],
+  }),
+  wheel({
+    id: 'customEffect',
+    name: '(自定义)术式效果',
+    tag: TALENT,
+    opts: [
+      ['灵魂类(真人)', 1],
+      ['元素(漏瑚等)'],
+      ['空间系(五条)'],
+      ['情感/意志类'],
+      ['假想'],
+      ['文本'],
+    ],
+  }),
+  wheel({
+    id: 'customAttr',
+    name: '术式属性·自定义',
+    tag: TALENT,
+    opts: [['天'], ['地'], ['泽', 1]],
+  }),
+  wheel({
+    id: 'selfAttr',
+    name: '术士是否自带属性·自定义',
+    tag: TALENT,
+    opts: [['是'], ['否']],
+  }),
+  wheel({
+    id: 'specialKind',
+    name: '特殊天赋是',
+    tag: TALENT,
+    opts: [
+      ['六眼'],
+      ['天与咒缚'],
+      ['星浆体'],
+      ['双生子'],
+      ['双面四臂'],
+      ['半人半咒'],
+      ['德斯昆特族血脉(牛头人杀意)', 1],
+      ['虎杖版超级受肉'],
+    ],
+  }),
+  wheel({
+    id: 'vowType',
+    name: '天与咒缚类型',
+    tag: TALENT,
+    opts: [['咒力换肉体', 1], ['肉体换咒力']],
+  }),
+  wheel({
+    id: 'noTechSkill',
+    name: '会哪个高级技巧·无生得术式',
+    tag: TALENT,
+    opts: [
+      ['简易领域', 1],
+      ['领域展延'],
+      ['反转术式外放'],
+      ['黑闪(68虎水平)'],
+      ['制作咒具'],
+      ['咒骸制作'],
+      ['咒术科学(索)', 1],
+      ['超级结界术(天元)', 1],
+      ['无敌贷款王(会精明利用束缚)', 1],
+      ['神秘农家乐(?)'],
+    ],
+  }),
+]
+
+/** 临时结局盘（P1 用，P6 会换成完整的四条结局线）。 */
+export const ENDING_STAGES: Stage[] = [
+  wheel({
+    id: 'ending',
+    kind: 'ending',
+    name: '是否活到68年后',
+    tag: END,
+    opts: [
+      ['是', 2],
+      ['否', 2],
+      ['是(寿命+1)', 1],
+    ],
+  }),
+  wheel({
+    id: 'legacy',
+    kind: 'legacy',
+    name: '观众看完会不会投币',
+    tag: END,
+    opts: [
+      ['投币', 1],
+      ['白嫖', 1],
+    ],
+  }),
+]
+
+export const VIDEO_STAGES: Stage[] = [
+  ...ORIGIN_STAGES,
+  ...ORIGIN_BRANCHES,
+  ...TALENT_STAGES,
+  ...TALENT_BRANCHES,
+  ...ENDING_STAGES,
+]

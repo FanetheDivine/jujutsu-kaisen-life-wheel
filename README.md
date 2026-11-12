@@ -4,7 +4,7 @@
 
 项目使用 **React 19 + 严格 TypeScript + Tailwind CSS v4 + Zustand** 构建界面与状态层，由 **Vite + vite-plugin-pwa** 打包为可直接部署到静态托管服务的可安装 PWA；运行时不依赖后端。
 
-**当前版本：`v6.1`**（2026-11-09 · 命运回看 + 手转改命）
+**当前版本：`v6.2`**（2026-11-12 · 规则对齐视频：出身盘 + 天赋盘）
 
 **在线直接玩**：<https://solar-cv.github.io/jujutsu-kaisen-life-wheel/>
 
@@ -129,6 +129,16 @@ pnpm preview
 
 旧 `jujutsu-life-wheel.html` 的源码位于 `public/jujutsu-life-wheel.html`，只负责跳转，不再包含业务代码。
 
+## 规则来源（视频对齐）
+
+规则层正在按 UP 主**毓彧庾**的《咒术转盘》系列（B 站 `space.bilibili.com/198375523`，正传合集 87 集）逐期对齐。轮次名、扇面文案与条件插盘都来自对最近 10 集的逐帧还原：720P 下载、每 4 秒抽帧、OCR 画面文字，再按「轮次标题 / 本轮结果 / 扇面选项」三段切分归并。
+
+- **权重口径**：视频画面从不显示百分比，因此权重按 `1 + 该扇面在 10 局录像里被抽中的次数` 估算。样本极小（多数轮次 0–4 次），只作参考，不是原作者配置；想改成等权只需把 `src/game/video/data.ts` 里的次数改成 0。
+- **扇面口径**：选项清单是 10 局里出现过的可见并集，OCR 误识已人工校订，个别不确定的扇面被丢弃。
+- **已对齐（P1）**：出身盘（身份、地点、时间点、性别、年龄、颜值、道德 + 咒灵 / 高层 / 诅咒师 / 魂穿专属支线）、天赋盘（生得术式、咒力总量、体质、效率、操纵、体术、天赋、特殊天赋、极之番、领域、无术式高级技巧）、临时终局两轮。
+- **待对齐**：P2 装备与束缚、P3 剧情事件线、P4 死灭回游与新宿决战、P5 战斗卡面流程、P6 四条结局线与彩蛋盘。
+- **数据管线**：`scripts/video/prepare_source.py` 把 OCR 还原结果清洗成 `scripts/video/source.json`，再人工校订进 `src/game/video/data.ts`；条件插盘表在 `src/game/video/flow.ts`。
+
 ## 项目结构
 
 ```text
@@ -145,6 +155,9 @@ src/
     selectors.ts               当前概率分布与动态轮次推进
     derive.ts                  确定性派生命名与生还率
     types.ts                   业务类型定义
+    video/
+      data.ts                  视频规则的轮次与扇面（P1：出身盘 + 天赋盘 + 临时终局）
+      flow.ts                  视频主干顺序与条件插盘表
     version.ts                 玩法版本信息
   store/                       Zustand vanilla store 与 React 绑定
   lib/                         Tailwind 类名合并等浏览器辅助函数
@@ -157,6 +170,7 @@ public/
   jujutsu-life-wheel.html      旧地址兼容跳转页
 tests/                         Vitest 与生产产物校验测试
 scripts/verify-dist.mjs        生产 PWA 产物校验脚本
+scripts/video/                 视频规则数据清洗脚本与清洗后的数据源
 vite.config.ts                 Vite、Vitest 与 PWA 配置
 .github/workflows/ci.yml       PR 与 main 分支完整检查
 .github/workflows/deploy.yml   v* 标签触发的 GitHub Pages 部署
@@ -167,6 +181,7 @@ AGENTS.md                      项目梗概与协作指南
 
 版本号显示在网页标题旁，由 `src/game/version.ts` 中的 `VERSION` / `VERSION_DATE` / `VERSION_NOTE` 维护。
 
+- **v6.2**（2026-11-12）：规则对齐视频：出身盘与天赋盘换成《咒术转盘》的轮次与扇面，条件插盘改为数据表驱动。
 - **v6.1**（2026-11-09）：命运回看与手转改命：顶部序号回看当时概率与因果，拖动转盘改写结果，结果改变才作废后续。
 - **v6.0**（2026-10-15）：全部事件战、按立场与强度匹配敌人、战后成长、早死分支及「事件战只出结算」。
 - **v5.x**：御三家细化、立场冲突修复、复制反馈修复、「重新开始」与束缚链修复。

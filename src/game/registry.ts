@@ -25,17 +25,13 @@ import {
 } from './data'
 import { register } from './options'
 import type { Stage } from './types'
+import { BASE_VIDEO_FLOW } from './video/flow'
+import { VIDEO_STAGES } from './video/data'
 
-export const BASE_FLOW = [
-  ...CORE,
-  VOW_GATE,
-  SKILL_COUNT,
-  BATTLE_SIDE,
-  BATTLE_ROUNDS,
-  ENDING,
-  LEGACY,
-]
+/** 视频规则主干：出身盘 → 天赋盘 → 终局盘。 */
+export const BASE_FLOW: Stage[] = [...BASE_VIDEO_FLOW]
 export const ALL_STAGES: Stage[] = [
+  ...VIDEO_STAGES,
   ...CORE,
   SKILL_COUNT,
   GEAR_COUNT,
