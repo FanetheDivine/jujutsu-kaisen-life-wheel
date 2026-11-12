@@ -6,3 +6,4 @@ pnpm-lock.yaml
 .agents
 .dsh
 scripts/video/source.json
+scripts/video/plot.json
