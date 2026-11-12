@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { expandAfter } from '../src/game/flow'
+import { BASE_VIDEO_FLOW, BRANCH_STAGE_IDS } from '../src/game/video/flow'
 import { BASE_FLOW, createBaseFlow } from '../src/game/registry'
 import { distribution, nextActiveIndex } from '../src/game/selectors'
 import { VIDEO_STAGES } from '../src/game/video/data'
@@ -150,5 +151,68 @@ describe('录像频次权重', () => {
     expect(common).toBeCloseTo(rare * 3, 5)
     expect(Object.values(view.pct).reduce((sum, value) => sum + value, 0)).toBeCloseTo(100)
     expect(view.notes).toEqual([])
+  })
+})
+
+describe('P2 装备与评级', () => {
+  it('装备三连按「数量 → 类型 → 效果」排在天赋之后', () => {
+    const order = BASE_VIDEO_FLOW.map((stage) => stage.id)
+    const at = (id: string) => order.indexOf(id)
+
+    expect(at('talent')).toBeLessThan(at('gearCount'))
+    expect(at('gearCount')).toBeLessThan(at('gearKind'))
+    expect(at('gearKind')).toBeLessThan(at('gearEffect'))
+    expect(at('gearEffect')).toBeLessThan(at('special'))
+    expect(at('special')).toBeLessThan(at('rating'))
+    expect(at('ultimate')).toBeLessThan(at('rating'))
+    expect(at('rating')).toBeLessThan(at('domainType'))
+  })
+
+  it('评级覆盖录像里读到的全部等级', () => {
+    const labels = stageOf('rating').options.map((option) => option.label)
+
+    expect(labels).toEqual(
+      expect.arrayContaining(['不入评级', '四级', '三级', '二级', '一级', '特别一级', '特级']),
+    )
+  })
+
+  it('咒具数量只给出录像能确认的 2 与 3，以及同款补全的 1', () => {
+    expect(stageOf('gearCount').options.map((option) => option.label)).toEqual(['1', '2', '3'])
+  })
+})
+
+describe('P2 束缚支线', () => {
+  it('立下束缚后依次插入代价与收益', () => {
+    freshStages()
+    const index = idxOf('vowMade')
+    expandAfter(index, 'vowMade', pickOf('vowMade', '是'))
+
+    expect(nextIds(index, 2)).toEqual(['vowCost', 'vowGain'])
+  })
+
+  it('没有立下束缚则不插盘', () => {
+    freshStages()
+    const index = idxOf('vowMade')
+    expandAfter(index, 'vowMade', pickOf('vowMade', '否'))
+
+    expect(nextIds(index, 1)).toEqual(['ultimate'])
+  })
+
+  it('束缚从主线流到终局', () => {
+    freshStages()
+    const order = gameStore.getState().stages.map((stage) => stage.id)
+
+    expect(order.indexOf('special')).toBeLessThan(order.indexOf('vowMade'))
+    expect(order.indexOf('vowMade')).toBeLessThan(order.indexOf('ultimate'))
+  })
+})
+
+describe('轮次登记完整性', () => {
+  it('每个登记过的轮次都在主干或条件子盘里', () => {
+    const main = new Set(BASE_VIDEO_FLOW.map((stage) => stage.id))
+    const branches = new Set(BRANCH_STAGE_IDS)
+    const orphans = VIDEO_STAGES.filter((stage) => !main.has(stage.id) && !branches.has(stage.id))
+
+    expect(orphans.map((stage) => stage.id)).toEqual([])
   })
 })
